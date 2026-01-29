@@ -10,9 +10,11 @@
 
 #include "Log.h"
 #include "Player.h"
+#include "Group.h"
 #include "TemporarySummon.h"
 
 #include <chrono>
+#include <cmath>
 #include <sstream>
 
 void AddCreatureToMapCreatureList(Creature* creature, bool addToCreatureList, bool forceRecalculation)
@@ -613,7 +615,66 @@ float getBaseExpansionValueForLevel(const float baseValues[3], uint8 targetLevel
     return returnValue;
 }
 
-float getDefaultMultiplier(Map* map, AutoBalanceInflectionPointSettings inflectionPointSettings)
+// Helper function to calculate normalized value using tanh formula
+static float calculateTanFormula(float adjustedPlayerCount, float inflectionValue, float maxPlayers, float diff)
+{
+    return ((tanh((adjustedPlayerCount - inflectionValue) / diff) + 1.0f) / 2.0f);
+}
+
+// Helper function to calculate normalized value using logarithmic formula
+static float calculateLogFormula(float adjustedPlayerCount, float inflectionValue, float maxPlayers, float diff)
+{
+    // Calculate normalized input similar to tanh: (adjustedPlayerCount - inflectionValue) / diff
+    float normalized = (adjustedPlayerCount - inflectionValue) / diff;
+    // For logarithmic scaling, we want a curve that starts slow and accelerates
+    // Use sigmoid-like logarithmic function that maps [-inf, inf] to [0, 1]
+    // Shift and scale to match tanh's effective range
+    float shifted = normalized + 5.0f; // Shift to positive range
+    // Apply logarithmic scaling: log(1 + shifted) normalized
+    // The division factor controls the steepness of the curve
+    float logValue = log1p(shifted) / log1p(10.0f);
+    return std::max(0.0f, std::min(1.0f, logValue));
+}
+
+// Helper function to calculate normalized value using exponential formula
+static float calculateExpFormula(float adjustedPlayerCount, float inflectionValue, float maxPlayers, float diff)
+{
+    // Calculate normalized input similar to tanh: (adjustedPlayerCount - inflectionValue) / diff
+    float normalized = (adjustedPlayerCount - inflectionValue) / diff;
+    // For exponential scaling, we want a curve that starts fast and decelerates
+    // Use inverse sigmoid-like exponential function that maps [-inf, inf] to [0, 1]
+    // Shift to handle negative values
+    float shifted = normalized + 5.0f; // Shift to positive range
+    // Apply exponential scaling: (exp(shifted/k) - 1) / (exp(max/k) - 1)
+    // k controls the steepness - smaller k = steeper curve
+    float k = 3.0f;
+    float expValue = (exp(shifted / k) - 1.0f) / (exp(10.0f / k) - 1.0f);
+    return std::max(0.0f, std::min(1.0f, expValue));
+}
+
+// Helper function to calculate normalized value using polynomial formula
+static float calculatePolFormula(float adjustedPlayerCount, float inflectionValue, float maxPlayers, float diff)
+{
+    // Calculate normalized input: player count normalized to [0, 1] range
+    float normalized = adjustedPlayerCount / maxPlayers;
+    
+    // For polynomial scaling, the inflectionValue is passed as (maxPlayers * configValue)
+    // We need to extract the original config value by dividing by maxPlayers
+    // This is because other formulas use inflectionValue as an absolute offset,
+    // but for POL we use it as the exponent/power directly
+    float power = inflectionValue / maxPlayers;
+    
+    // Apply polynomial scaling: normalized^power
+    // Higher power = steeper curve, power of 2 gives moderate curve
+    float polValue = pow(std::max(0.0f, normalized), power);
+    
+    //LOG_INFO("module.AutoBalance", "calculatePolFormula: adjustedPlayerCount={}, inflectionValue={}, maxPlayers={}, normalized={}, power={} (extracted from inflectionValue/maxPlayers), polValue={}",
+    //    adjustedPlayerCount, inflectionValue, maxPlayers, normalized, power, polValue);
+    
+    return polValue;
+}
+
+float getDefaultMultiplier(Map* map, AutoBalanceInflectionPointSettings inflectionPointSettings, FormulaType formulaType)
 {
     // You can visually see the effects of this function by using this spreadsheet:
     // https://docs.google.com/spreadsheets/d/100cmKIJIjCZ-ncWd0K9ykO8KUgwFTcwg4h2nfE_UeCc/copy
@@ -635,22 +696,54 @@ float getDefaultMultiplier(Map* map, AutoBalanceInflectionPointSettings inflecti
     float diff = ((float)maxNumberOfPlayers/5)*1.5f;
 
     //
-    // For math reasons that I do not understand, curveCeiling needs to be adjusted to bring the actual multiplier
-    // closer to the curveCeiling setting. Create an adjustment based on how much the ceiling should be changed at
-    // the max players multiplier.
+    // Calculate the normalized value [0, 1] based on the selected formula
     //
-    float curveCeilingAdjustment =
-        inflectionPointSettings.curveCeiling /
-        (((tanh(((float)maxNumberOfPlayers - inflectionPointSettings.value) / diff) + 1.0f) / 2.0f) *
-        (inflectionPointSettings.curveCeiling - inflectionPointSettings.curveFloor) + inflectionPointSettings.curveFloor);
+    float normalizedValue = 0.0f;
+    
+    switch (formulaType)
+    {
+        case AUTOBALANCE_FORMULA_LOG:
+            normalizedValue = calculateLogFormula(adjustedPlayerCount, inflectionPointSettings.value, maxNumberOfPlayers, diff);
+            break;
+        case AUTOBALANCE_FORMULA_EXP:
+            normalizedValue = calculateExpFormula(adjustedPlayerCount, inflectionPointSettings.value, maxNumberOfPlayers, diff);
+            break;
+        case AUTOBALANCE_FORMULA_POL:
+            normalizedValue = calculatePolFormula(adjustedPlayerCount, inflectionPointSettings.value, maxNumberOfPlayers, diff);
+            break;
+        case AUTOBALANCE_FORMULA_TAN:
+        default:
+            normalizedValue = calculateTanFormula(adjustedPlayerCount, inflectionPointSettings.value, maxNumberOfPlayers, diff);
+            break;
+    }
 
     //
-    // Adjust the multiplier based on the configured floor and ceiling values, plus the ceiling adjustment we just calculated
+    // For tanh formula, apply the curveCeiling adjustment for backwards compatibility
+    // For other formulas, use a simpler approach
+    //
+    float curveCeilingAdjustment = 1.0f;
+    if (formulaType == AUTOBALANCE_FORMULA_TAN)
+    {
+        // For math reasons that I do not understand, curveCeiling needs to be adjusted to bring the actual multiplier
+        // closer to the curveCeiling setting. Create an adjustment based on how much the ceiling should be changed at
+        // the max players multiplier.
+        float maxNormalizedValue = calculateTanFormula((float)maxNumberOfPlayers, inflectionPointSettings.value, maxNumberOfPlayers, diff);
+        float maxMultiplier = maxNormalizedValue * (inflectionPointSettings.curveCeiling - inflectionPointSettings.curveFloor) + inflectionPointSettings.curveFloor;
+        if (maxMultiplier > 0.0f)
+            curveCeilingAdjustment = inflectionPointSettings.curveCeiling / maxMultiplier;
+    }
+
+    //
+    // Adjust the multiplier based on the configured floor and ceiling values
     //
     float defaultMultiplier =
-        ((tanh((adjustedPlayerCount - inflectionPointSettings.value) / diff) + 1.0f) / 2.0f) *
+        normalizedValue *
         (inflectionPointSettings.curveCeiling * curveCeilingAdjustment - inflectionPointSettings.curveFloor) +
         inflectionPointSettings.curveFloor;
+
+    /*LOG_INFO("module.AutoBalance", "getDefaultMultiplier: finalMultiplier={} (normalizedValue={} * range={} + floor={}) * adjustment={}",
+        defaultMultiplier, normalizedValue, (inflectionPointSettings.curveCeiling * curveCeilingAdjustment - inflectionPointSettings.curveFloor),
+        inflectionPointSettings.curveFloor, curveCeilingAdjustment);*/
 
     return defaultMultiplier;
 }
@@ -718,7 +811,9 @@ World_Multipliers getWorldMultiplier(Map* map, BaseValueType baseValueType)
     // Get the inflection point settings for this map
     //
 
-    AutoBalanceInflectionPointSettings inflectionPointSettings = getInflectionPointSettings(instanceMap);
+    // Use appropriate stat type based on baseValueType
+    StatType statType = (baseValueType == BaseValueType::AUTOBALANCE_HEALTH) ? AUTOBALANCE_STAT_HEALTH : AUTOBALANCE_STAT_DAMAGE;
+    AutoBalanceInflectionPointSettings inflectionPointSettings = getInflectionPointSettings(instanceMap, false, statType);
 
     //
     // Generate the default multiplier before level scaling
@@ -726,7 +821,8 @@ World_Multipliers getWorldMultiplier(Map* map, BaseValueType baseValueType)
     //
 
     float worldMultiplier   = 1.0f;
-    float defaultMultiplier = getDefaultMultiplier(map, inflectionPointSettings);
+    FormulaType formulaType = (baseValueType == BaseValueType::AUTOBALANCE_HEALTH) ? FormulaTypeHealth : FormulaTypeDamage;
+    float defaultMultiplier = getDefaultMultiplier(map, inflectionPointSettings, formulaType);
 
     LOG_DEBUG("module.AutoBalance",
         "AutoBalance::getWorldMultiplier: Map {} ({}) {} | defaultMultiplier ({}) = getDefaultMultiplier(map, inflectionPointSettings)",
@@ -924,7 +1020,7 @@ World_Multipliers getWorldMultiplier(Map* map, BaseValueType baseValueType)
     return worldMultipliers;
 }
 
-AutoBalanceInflectionPointSettings getInflectionPointSettings (InstanceMap* instanceMap, bool isBoss)
+AutoBalanceInflectionPointSettings getInflectionPointSettings (InstanceMap* instanceMap, bool isBoss, StatType statType)
 {
     uint32 maxNumberOfPlayers = instanceMap->GetMaxPlayers();
     uint32 mapId              = instanceMap->GetEntry()->MapID;
@@ -932,34 +1028,77 @@ AutoBalanceInflectionPointSettings getInflectionPointSettings (InstanceMap* inst
     float  inflectionValue    = (float)maxNumberOfPlayers;
     float  curveFloor;
     float  curveCeiling;
+    float  statSpecificInflection = -1.0f; // -1 indicates not set
 
     //
-    // Base Inflection Point
+    // Check for stat-specific inflection point first
     //
 
+    // Determine stat-specific inflection point based on instance type and stat
     if (instanceMap->IsHeroic())
     {
         if (maxNumberOfPlayers <= 5)
         {
-            inflectionValue *= InflectionPointHeroic;
+            // Check for stat-specific inflection point
+            if (statType == AUTOBALANCE_STAT_HEALTH && InflectionPointHeroicHealth >= 0.0f)
+                statSpecificInflection = InflectionPointHeroicHealth;
+            else if (statType == AUTOBALANCE_STAT_MANA && InflectionPointHeroicMana >= 0.0f)
+                statSpecificInflection = InflectionPointHeroicMana;
+            else if (statType == AUTOBALANCE_STAT_ARMOR && InflectionPointHeroicArmor >= 0.0f)
+                statSpecificInflection = InflectionPointHeroicArmor;
+            else if (statType == AUTOBALANCE_STAT_DAMAGE && InflectionPointHeroicDamage >= 0.0f)
+                statSpecificInflection = InflectionPointHeroicDamage;
+            
+            if (statSpecificInflection < 0.0f)
+                inflectionValue *= InflectionPointHeroic;
             curveFloor       = InflectionPointHeroicCurveFloor;
             curveCeiling     = InflectionPointHeroicCurveCeiling;
         }
         else if (maxNumberOfPlayers <= 10)
         {
-            inflectionValue *= InflectionPointRaid10MHeroic;
+            if (statType == AUTOBALANCE_STAT_HEALTH && InflectionPointRaid10MHeroicHealth >= 0.0f)
+                statSpecificInflection = InflectionPointRaid10MHeroicHealth;
+            else if (statType == AUTOBALANCE_STAT_MANA && InflectionPointRaid10MHeroicMana >= 0.0f)
+                statSpecificInflection = InflectionPointRaid10MHeroicMana;
+            else if (statType == AUTOBALANCE_STAT_ARMOR && InflectionPointRaid10MHeroicArmor >= 0.0f)
+                statSpecificInflection = InflectionPointRaid10MHeroicArmor;
+            else if (statType == AUTOBALANCE_STAT_DAMAGE && InflectionPointRaid10MHeroicDamage >= 0.0f)
+                statSpecificInflection = InflectionPointRaid10MHeroicDamage;
+            
+            if (statSpecificInflection < 0.0f)
+                inflectionValue *= InflectionPointRaid10MHeroic;
             curveFloor       = InflectionPointRaid10MHeroicCurveFloor;
             curveCeiling     = InflectionPointRaid10MHeroicCurveCeiling;
         }
         else if (maxNumberOfPlayers <= 25)
         {
-            inflectionValue *= InflectionPointRaid25MHeroic;
+            if (statType == AUTOBALANCE_STAT_HEALTH && InflectionPointRaid25MHeroicHealth >= 0.0f)
+                statSpecificInflection = InflectionPointRaid25MHeroicHealth;
+            else if (statType == AUTOBALANCE_STAT_MANA && InflectionPointRaid25MHeroicMana >= 0.0f)
+                statSpecificInflection = InflectionPointRaid25MHeroicMana;
+            else if (statType == AUTOBALANCE_STAT_ARMOR && InflectionPointRaid25MHeroicArmor >= 0.0f)
+                statSpecificInflection = InflectionPointRaid25MHeroicArmor;
+            else if (statType == AUTOBALANCE_STAT_DAMAGE && InflectionPointRaid25MHeroicDamage >= 0.0f)
+                statSpecificInflection = InflectionPointRaid25MHeroicDamage;
+            
+            if (statSpecificInflection < 0.0f)
+                inflectionValue *= InflectionPointRaid25MHeroic;
             curveFloor       = InflectionPointRaid25MHeroicCurveFloor;
             curveCeiling     = InflectionPointRaid25MHeroicCurveCeiling;
         }
         else
         {
-            inflectionValue *= InflectionPointRaidHeroic;
+            if (statType == AUTOBALANCE_STAT_HEALTH && InflectionPointRaidHeroicHealth >= 0.0f)
+                statSpecificInflection = InflectionPointRaidHeroicHealth;
+            else if (statType == AUTOBALANCE_STAT_MANA && InflectionPointRaidHeroicMana >= 0.0f)
+                statSpecificInflection = InflectionPointRaidHeroicMana;
+            else if (statType == AUTOBALANCE_STAT_ARMOR && InflectionPointRaidHeroicArmor >= 0.0f)
+                statSpecificInflection = InflectionPointRaidHeroicArmor;
+            else if (statType == AUTOBALANCE_STAT_DAMAGE && InflectionPointRaidHeroicDamage >= 0.0f)
+                statSpecificInflection = InflectionPointRaidHeroicDamage;
+            
+            if (statSpecificInflection < 0.0f)
+                inflectionValue *= InflectionPointRaidHeroic;
             curveFloor       = InflectionPointRaidHeroicCurveFloor;
             curveCeiling     = InflectionPointRaidHeroicCurveCeiling;
         }
@@ -968,46 +1107,123 @@ AutoBalanceInflectionPointSettings getInflectionPointSettings (InstanceMap* inst
     {
         if (maxNumberOfPlayers <= 5)
         {
-            inflectionValue *= InflectionPoint;
+            if (statType == AUTOBALANCE_STAT_HEALTH && InflectionPointHealth >= 0.0f)
+                statSpecificInflection = InflectionPointHealth;
+            else if (statType == AUTOBALANCE_STAT_MANA && InflectionPointMana >= 0.0f)
+                statSpecificInflection = InflectionPointMana;
+            else if (statType == AUTOBALANCE_STAT_ARMOR && InflectionPointArmor >= 0.0f)
+                statSpecificInflection = InflectionPointArmor;
+            else if (statType == AUTOBALANCE_STAT_DAMAGE && InflectionPointDamage >= 0.0f)
+                statSpecificInflection = InflectionPointDamage;
+            
+            if (statSpecificInflection < 0.0f)
+                inflectionValue *= InflectionPoint;
             curveFloor       = InflectionPointCurveFloor;
             curveCeiling     = InflectionPointCurveCeiling;
         }
         else if (maxNumberOfPlayers <= 10)
         {
-            inflectionValue *= InflectionPointRaid10M;
+            if (statType == AUTOBALANCE_STAT_HEALTH && InflectionPointRaid10MHealth >= 0.0f)
+                statSpecificInflection = InflectionPointRaid10MHealth;
+            else if (statType == AUTOBALANCE_STAT_MANA && InflectionPointRaid10MMana >= 0.0f)
+                statSpecificInflection = InflectionPointRaid10MMana;
+            else if (statType == AUTOBALANCE_STAT_ARMOR && InflectionPointRaid10MArmor >= 0.0f)
+                statSpecificInflection = InflectionPointRaid10MArmor;
+            else if (statType == AUTOBALANCE_STAT_DAMAGE && InflectionPointRaid10MDamage >= 0.0f)
+                statSpecificInflection = InflectionPointRaid10MDamage;
+            
+            if (statSpecificInflection < 0.0f)
+                inflectionValue *= InflectionPointRaid10M;
             curveFloor       = InflectionPointRaid10MCurveFloor;
             curveCeiling     = InflectionPointRaid10MCurveCeiling;
         }
         else if (maxNumberOfPlayers <= 15)
         {
-            inflectionValue *= InflectionPointRaid15M;
+            if (statType == AUTOBALANCE_STAT_HEALTH && InflectionPointRaid15MHealth >= 0.0f)
+                statSpecificInflection = InflectionPointRaid15MHealth;
+            else if (statType == AUTOBALANCE_STAT_MANA && InflectionPointRaid15MMana >= 0.0f)
+                statSpecificInflection = InflectionPointRaid15MMana;
+            else if (statType == AUTOBALANCE_STAT_ARMOR && InflectionPointRaid15MArmor >= 0.0f)
+                statSpecificInflection = InflectionPointRaid15MArmor;
+            else if (statType == AUTOBALANCE_STAT_DAMAGE && InflectionPointRaid15MDamage >= 0.0f)
+                statSpecificInflection = InflectionPointRaid15MDamage;
+            
+            if (statSpecificInflection < 0.0f)
+                inflectionValue *= InflectionPointRaid15M;
             curveFloor       = InflectionPointRaid15MCurveFloor;
             curveCeiling     = InflectionPointRaid15MCurveCeiling;
         }
         else if (maxNumberOfPlayers <= 20)
         {
-            inflectionValue *= InflectionPointRaid20M;
+            if (statType == AUTOBALANCE_STAT_HEALTH && InflectionPointRaid20MHealth >= 0.0f)
+                statSpecificInflection = InflectionPointRaid20MHealth;
+            else if (statType == AUTOBALANCE_STAT_MANA && InflectionPointRaid20MMana >= 0.0f)
+                statSpecificInflection = InflectionPointRaid20MMana;
+            else if (statType == AUTOBALANCE_STAT_ARMOR && InflectionPointRaid20MArmor >= 0.0f)
+                statSpecificInflection = InflectionPointRaid20MArmor;
+            else if (statType == AUTOBALANCE_STAT_DAMAGE && InflectionPointRaid20MDamage >= 0.0f)
+                statSpecificInflection = InflectionPointRaid20MDamage;
+            
+            if (statSpecificInflection < 0.0f)
+                inflectionValue *= InflectionPointRaid20M;
             curveFloor       = InflectionPointRaid20MCurveFloor;
             curveCeiling     = InflectionPointRaid20MCurveCeiling;
         }
         else if (maxNumberOfPlayers <= 25)
         {
-            inflectionValue *= InflectionPointRaid25M;
+            if (statType == AUTOBALANCE_STAT_HEALTH && InflectionPointRaid25MHealth >= 0.0f)
+                statSpecificInflection = InflectionPointRaid25MHealth;
+            else if (statType == AUTOBALANCE_STAT_MANA && InflectionPointRaid25MMana >= 0.0f)
+                statSpecificInflection = InflectionPointRaid25MMana;
+            else if (statType == AUTOBALANCE_STAT_ARMOR && InflectionPointRaid25MArmor >= 0.0f)
+                statSpecificInflection = InflectionPointRaid25MArmor;
+            else if (statType == AUTOBALANCE_STAT_DAMAGE && InflectionPointRaid25MDamage >= 0.0f)
+                statSpecificInflection = InflectionPointRaid25MDamage;
+            
+            if (statSpecificInflection < 0.0f)
+                inflectionValue *= InflectionPointRaid25M;
             curveFloor       = InflectionPointRaid25MCurveFloor;
             curveCeiling     = InflectionPointRaid25MCurveCeiling;
         }
         else if (maxNumberOfPlayers <= 40)
         {
-            inflectionValue *= InflectionPointRaid40M;
+            if (statType == AUTOBALANCE_STAT_HEALTH && InflectionPointRaid40MHealth >= 0.0f)
+                statSpecificInflection = InflectionPointRaid40MHealth;
+            else if (statType == AUTOBALANCE_STAT_MANA && InflectionPointRaid40MMana >= 0.0f)
+                statSpecificInflection = InflectionPointRaid40MMana;
+            else if (statType == AUTOBALANCE_STAT_ARMOR && InflectionPointRaid40MArmor >= 0.0f)
+                statSpecificInflection = InflectionPointRaid40MArmor;
+            else if (statType == AUTOBALANCE_STAT_DAMAGE && InflectionPointRaid40MDamage >= 0.0f)
+                statSpecificInflection = InflectionPointRaid40MDamage;
+            
+            if (statSpecificInflection < 0.0f)
+                inflectionValue *= InflectionPointRaid40M;
             curveFloor       = InflectionPointRaid40MCurveFloor;
             curveCeiling     = InflectionPointRaid40MCurveCeiling;
         }
         else
         {
-            inflectionValue *= InflectionPointRaid;
+            if (statType == AUTOBALANCE_STAT_HEALTH && InflectionPointRaidHealth >= 0.0f)
+                statSpecificInflection = InflectionPointRaidHealth;
+            else if (statType == AUTOBALANCE_STAT_MANA && InflectionPointRaidMana >= 0.0f)
+                statSpecificInflection = InflectionPointRaidMana;
+            else if (statType == AUTOBALANCE_STAT_ARMOR && InflectionPointRaidArmor >= 0.0f)
+                statSpecificInflection = InflectionPointRaidArmor;
+            else if (statType == AUTOBALANCE_STAT_DAMAGE && InflectionPointRaidDamage >= 0.0f)
+                statSpecificInflection = InflectionPointRaidDamage;
+            
+            if (statSpecificInflection < 0.0f)
+                inflectionValue *= InflectionPointRaid;
             curveFloor       = InflectionPointRaidCurveFloor;
             curveCeiling     = InflectionPointRaidCurveCeiling;
         }
+    }
+    
+    // If stat-specific inflection point is set, use it instead
+    if (statSpecificInflection >= 0.0f)
+    {
+        inflectionValue = (float)maxNumberOfPlayers;
+        inflectionValue *= statSpecificInflection;
     }
 
     //
@@ -1041,34 +1257,105 @@ AutoBalanceInflectionPointSettings getInflectionPointSettings (InstanceMap* inst
     if (isBoss) {
 
         float bossInflectionPointMultiplier;
+        float bossInflectionPointValue = -1.0f; // -1 indicates not set
+        float bossStatSpecificInflection = -1.0f; // -1 indicates not set
 
         if (instanceMap->IsHeroic())
         {
             if (maxNumberOfPlayers <= 5)
+            {
                 bossInflectionPointMultiplier = InflectionPointHeroicBoss;
+                bossInflectionPointValue = InflectionPointHeroicBossInflection;
+                // Check for boss-specific stat inflection points
+                if (statType == AUTOBALANCE_STAT_HEALTH && InflectionPointHeroicBossHealth >= 0.0f)
+                    bossStatSpecificInflection = InflectionPointHeroicBossHealth;
+                else if (statType == AUTOBALANCE_STAT_MANA && InflectionPointHeroicBossMana >= 0.0f)
+                    bossStatSpecificInflection = InflectionPointHeroicBossMana;
+                else if (statType == AUTOBALANCE_STAT_ARMOR && InflectionPointHeroicBossArmor >= 0.0f)
+                    bossStatSpecificInflection = InflectionPointHeroicBossArmor;
+                else if (statType == AUTOBALANCE_STAT_DAMAGE && InflectionPointHeroicBossDamage >= 0.0f)
+                    bossStatSpecificInflection = InflectionPointHeroicBossDamage;
+            }
             else if (maxNumberOfPlayers <= 10)
+            {
                 bossInflectionPointMultiplier = InflectionPointRaid10MHeroicBoss;
+                bossInflectionPointValue = InflectionPointRaid10MHeroicBossInflection;
+            }
             else if (maxNumberOfPlayers <= 25)
+            {
                 bossInflectionPointMultiplier = InflectionPointRaid25MHeroicBoss;
+                bossInflectionPointValue = InflectionPointRaid25MHeroicBossInflection;
+            }
             else
+            {
                 bossInflectionPointMultiplier = InflectionPointRaidHeroicBoss;
+                bossInflectionPointValue = InflectionPointRaidHeroicBossInflection;
+                // Check for boss-specific stat inflection points
+                if (statType == AUTOBALANCE_STAT_HEALTH && InflectionPointRaidHeroicBossHealth >= 0.0f)
+                    bossStatSpecificInflection = InflectionPointRaidHeroicBossHealth;
+                else if (statType == AUTOBALANCE_STAT_MANA && InflectionPointRaidHeroicBossMana >= 0.0f)
+                    bossStatSpecificInflection = InflectionPointRaidHeroicBossMana;
+                else if (statType == AUTOBALANCE_STAT_ARMOR && InflectionPointRaidHeroicBossArmor >= 0.0f)
+                    bossStatSpecificInflection = InflectionPointRaidHeroicBossArmor;
+                else if (statType == AUTOBALANCE_STAT_DAMAGE && InflectionPointRaidHeroicBossDamage >= 0.0f)
+                    bossStatSpecificInflection = InflectionPointRaidHeroicBossDamage;
+            }
         }
         else
         {
             if (maxNumberOfPlayers <= 5)
+            {
                 bossInflectionPointMultiplier = InflectionPointBoss;
+                bossInflectionPointValue = InflectionPointBossInflection;
+                // Check for boss-specific stat inflection points
+                if (statType == AUTOBALANCE_STAT_HEALTH && InflectionPointBossHealth >= 0.0f)
+                    bossStatSpecificInflection = InflectionPointBossHealth;
+                else if (statType == AUTOBALANCE_STAT_MANA && InflectionPointBossMana >= 0.0f)
+                    bossStatSpecificInflection = InflectionPointBossMana;
+                else if (statType == AUTOBALANCE_STAT_ARMOR && InflectionPointBossArmor >= 0.0f)
+                    bossStatSpecificInflection = InflectionPointBossArmor;
+                else if (statType == AUTOBALANCE_STAT_DAMAGE && InflectionPointBossDamage >= 0.0f)
+                    bossStatSpecificInflection = InflectionPointBossDamage;
+            }
             else if (maxNumberOfPlayers <= 10)
+            {
                 bossInflectionPointMultiplier = InflectionPointRaid10MBoss;
+                bossInflectionPointValue = InflectionPointRaid10MBossInflection;
+            }
             else if (maxNumberOfPlayers <= 15)
+            {
                 bossInflectionPointMultiplier = InflectionPointRaid15MBoss;
+                bossInflectionPointValue = InflectionPointRaid15MBossInflection;
+            }
             else if (maxNumberOfPlayers <= 20)
+            {
                 bossInflectionPointMultiplier = InflectionPointRaid20MBoss;
+                bossInflectionPointValue = InflectionPointRaid20MBossInflection;
+            }
             else if (maxNumberOfPlayers <= 25)
+            {
                 bossInflectionPointMultiplier = InflectionPointRaid25MBoss;
+                bossInflectionPointValue = InflectionPointRaid25MBossInflection;
+            }
             else if (maxNumberOfPlayers <= 40)
+            {
                 bossInflectionPointMultiplier = InflectionPointRaid40MBoss;
+                bossInflectionPointValue = InflectionPointRaid40MBossInflection;
+            }
             else
+            {
                 bossInflectionPointMultiplier = InflectionPointRaidBoss;
+                bossInflectionPointValue = InflectionPointRaidBossInflection;
+                // Check for boss-specific stat inflection points
+                if (statType == AUTOBALANCE_STAT_HEALTH && InflectionPointRaidBossHealth >= 0.0f)
+                    bossStatSpecificInflection = InflectionPointRaidBossHealth;
+                else if (statType == AUTOBALANCE_STAT_MANA && InflectionPointRaidBossMana >= 0.0f)
+                    bossStatSpecificInflection = InflectionPointRaidBossMana;
+                else if (statType == AUTOBALANCE_STAT_ARMOR && InflectionPointRaidBossArmor >= 0.0f)
+                    bossStatSpecificInflection = InflectionPointRaidBossArmor;
+                else if (statType == AUTOBALANCE_STAT_DAMAGE && InflectionPointRaidBossDamage >= 0.0f)
+                    bossStatSpecificInflection = InflectionPointRaidBossDamage;
+            }
         }
 
         //
@@ -1085,19 +1372,293 @@ AutoBalanceInflectionPointSettings getInflectionPointSettings (InstanceMap* inst
             if (myBossOverrides->value != -1)
                 inflectionValue *= myBossOverrides->value;
             //
-            // Otherwise, calculate using the value determined by instance type
+            // Otherwise, use boss stat-specific inflection if set, then boss general inflection, then boss modifier
             //
+            else if (bossStatSpecificInflection >= 0.0f)
+            {
+                inflectionValue = (float)maxNumberOfPlayers; // Start over
+                inflectionValue *= bossStatSpecificInflection;
+            }
+            else if (bossInflectionPointValue >= 0.0f)
+            {
+                inflectionValue = (float)maxNumberOfPlayers; // Start over
+                inflectionValue *= bossInflectionPointValue;
+            }
             else
                 inflectionValue *= bossInflectionPointMultiplier;
         }
         //
-        // No override, use the value determined by the instance type
+        // No override, use boss stat-specific inflection if set, then boss general inflection, then boss modifier
         //
         else
-            inflectionValue *= bossInflectionPointMultiplier;
+        {
+            if (bossStatSpecificInflection >= 0.0f)
+            {
+                inflectionValue = (float)maxNumberOfPlayers; // Start over
+                inflectionValue *= bossStatSpecificInflection;
+            }
+            else if (bossInflectionPointValue >= 0.0f)
+            {
+                inflectionValue = (float)maxNumberOfPlayers; // Start over
+                inflectionValue *= bossInflectionPointValue;
+            }
+            else
+                inflectionValue *= bossInflectionPointMultiplier;
+        }
     }
 
     return AutoBalanceInflectionPointSettings(inflectionValue, curveFloor, curveCeiling);
+}
+
+// Helper function to get stat modifiers for a given boss status without needing a creature
+AutoBalanceStatModifiers getStatModifiersForDisplay(Map* map, bool isBoss)
+{
+    InstanceMap* instanceMap = map->ToInstanceMap();
+    uint32 maxNumberOfPlayers = instanceMap->GetMaxPlayers();
+    
+    AutoBalanceStatModifiers statModifiers;
+    
+    if (instanceMap->IsHeroic()) // heroic
+    {
+        if (maxNumberOfPlayers <= 5)
+        {
+            if (isBoss)
+            {
+                statModifiers.global     = StatModifierHeroic_Boss_Global;
+                statModifiers.health     = StatModifierHeroic_Boss_Health;
+                statModifiers.damage     = StatModifierHeroic_Boss_Damage;
+            }
+            else
+            {
+                statModifiers.global     = StatModifierHeroic_Global;
+                statModifiers.health     = StatModifierHeroic_Health;
+                statModifiers.damage     = StatModifierHeroic_Damage;
+            }
+        }
+        else if (maxNumberOfPlayers <= 10)
+        {
+            if (isBoss)
+            {
+                statModifiers.global     = StatModifierRaid10MHeroic_Boss_Global;
+                statModifiers.health     = StatModifierRaid10MHeroic_Boss_Health;
+                statModifiers.damage     = StatModifierRaid10MHeroic_Boss_Damage;
+            }
+            else
+            {
+                statModifiers.global     = StatModifierRaid10MHeroic_Global;
+                statModifiers.health     = StatModifierRaid10MHeroic_Health;
+                statModifiers.damage     = StatModifierRaid10MHeroic_Damage;
+            }
+        }
+        else if (maxNumberOfPlayers <= 25)
+        {
+            if (isBoss)
+            {
+                statModifiers.global     = StatModifierRaid25MHeroic_Boss_Global;
+                statModifiers.health     = StatModifierRaid25MHeroic_Boss_Health;
+                statModifiers.damage     = StatModifierRaid25MHeroic_Boss_Damage;
+            }
+            else
+            {
+                statModifiers.global     = StatModifierRaid25MHeroic_Global;
+                statModifiers.health     = StatModifierRaid25MHeroic_Health;
+                statModifiers.damage     = StatModifierRaid25MHeroic_Damage;
+            }
+        }
+        else
+        {
+            if (isBoss)
+            {
+                statModifiers.global     = StatModifierRaidHeroic_Boss_Global;
+                statModifiers.health     = StatModifierRaidHeroic_Boss_Health;
+                statModifiers.damage     = StatModifierRaidHeroic_Boss_Damage;
+            }
+            else
+            {
+                statModifiers.global     = StatModifierRaidHeroic_Global;
+                statModifiers.health     = StatModifierRaidHeroic_Health;
+                statModifiers.damage     = StatModifierRaidHeroic_Damage;
+            }
+        }
+    }
+    else // non-heroic
+    {
+        if (maxNumberOfPlayers <= 5)
+        {
+            if (isBoss)
+            {
+                statModifiers.global     = StatModifier_Boss_Global;
+                statModifiers.health     = StatModifier_Boss_Health;
+                statModifiers.damage     = StatModifier_Boss_Damage;
+            }
+            else
+            {
+                statModifiers.global     = StatModifier_Global;
+                statModifiers.health     = StatModifier_Health;
+                statModifiers.damage     = StatModifier_Damage;
+            }
+        }
+        else if (maxNumberOfPlayers <= 10)
+        {
+            if (isBoss)
+            {
+                statModifiers.global     = StatModifierRaid10M_Boss_Global;
+                statModifiers.health     = StatModifierRaid10M_Boss_Health;
+                statModifiers.damage     = StatModifierRaid10M_Boss_Damage;
+            }
+            else
+            {
+                statModifiers.global     = StatModifierRaid10M_Global;
+                statModifiers.health     = StatModifierRaid10M_Health;
+                statModifiers.damage     = StatModifierRaid10M_Damage;
+            }
+        }
+        else if (maxNumberOfPlayers <= 15)
+        {
+            if (isBoss)
+            {
+                statModifiers.global     = StatModifierRaid15M_Boss_Global;
+                statModifiers.health     = StatModifierRaid15M_Boss_Health;
+                statModifiers.damage     = StatModifierRaid15M_Boss_Damage;
+            }
+            else
+            {
+                statModifiers.global     = StatModifierRaid15M_Global;
+                statModifiers.health     = StatModifierRaid15M_Health;
+                statModifiers.damage     = StatModifierRaid15M_Damage;
+            }
+        }
+        else if (maxNumberOfPlayers <= 20)
+        {
+            if (isBoss)
+            {
+                statModifiers.global     = StatModifierRaid20M_Boss_Global;
+                statModifiers.health     = StatModifierRaid20M_Boss_Health;
+                statModifiers.damage     = StatModifierRaid20M_Boss_Damage;
+            }
+            else
+            {
+                statModifiers.global     = StatModifierRaid20M_Global;
+                statModifiers.health     = StatModifierRaid20M_Health;
+                statModifiers.damage     = StatModifierRaid20M_Damage;
+            }
+        }
+        else if (maxNumberOfPlayers <= 25)
+        {
+            if (isBoss)
+            {
+                statModifiers.global     = StatModifierRaid25M_Boss_Global;
+                statModifiers.health     = StatModifierRaid25M_Boss_Health;
+                statModifiers.damage     = StatModifierRaid25M_Boss_Damage;
+            }
+            else
+            {
+                statModifiers.global     = StatModifierRaid25M_Global;
+                statModifiers.health     = StatModifierRaid25M_Health;
+                statModifiers.damage     = StatModifierRaid25M_Damage;
+            }
+        }
+        else if (maxNumberOfPlayers <= 40)
+        {
+            if (isBoss)
+            {
+                statModifiers.global     = StatModifierRaid40M_Boss_Global;
+                statModifiers.health     = StatModifierRaid40M_Boss_Health;
+                statModifiers.damage     = StatModifierRaid40M_Boss_Damage;
+            }
+            else
+            {
+                statModifiers.global     = StatModifierRaid40M_Global;
+                statModifiers.health     = StatModifierRaid40M_Health;
+                statModifiers.damage     = StatModifierRaid40M_Damage;
+            }
+        }
+        else
+        {
+            if (isBoss)
+            {
+                statModifiers.global     = StatModifierRaid_Boss_Global;
+                statModifiers.health     = StatModifierRaid_Boss_Health;
+                statModifiers.damage     = StatModifierRaid_Boss_Damage;
+            }
+            else
+            {
+                statModifiers.global     = StatModifierRaid_Global;
+                statModifiers.health     = StatModifierRaid_Health;
+                statModifiers.damage     = StatModifierRaid_Damage;
+            }
+        }
+    }
+    
+    return statModifiers;
+}
+
+StatMultiplierDisplay CalculateStatMultipliersForDisplay(InstanceMap* instanceMap, bool isBoss)
+{
+    Map* map = instanceMap;
+    AutoBalanceMapInfo* mapABInfo = GetMapInfo(map);
+    
+    LOG_DEBUG("module.AutoBalance", "CalculateStatMultipliersForDisplay: Map {} ({}), isBoss={}, adjustedPlayerCount={}",
+        instanceMap->GetMapName(), instanceMap->GetId(), isBoss, mapABInfo->adjustedPlayerCount);
+    
+    // Get inflection point settings for health and damage
+    AutoBalanceInflectionPointSettings inflectionPointSettingsHealth = getInflectionPointSettings(instanceMap, isBoss, AUTOBALANCE_STAT_HEALTH);
+    AutoBalanceInflectionPointSettings inflectionPointSettingsDamage = getInflectionPointSettings(instanceMap, isBoss, AUTOBALANCE_STAT_DAMAGE);
+    
+    LOG_DEBUG("module.AutoBalance", "CalculateStatMultipliersForDisplay: Health inflection value={}, curveFloor={}, curveCeiling={}",
+        inflectionPointSettingsHealth.value, inflectionPointSettingsHealth.curveFloor, inflectionPointSettingsHealth.curveCeiling);
+    LOG_DEBUG("module.AutoBalance", "CalculateStatMultipliersForDisplay: Damage inflection value={}, curveFloor={}, curveCeiling={}",
+        inflectionPointSettingsDamage.value, inflectionPointSettingsDamage.curveFloor, inflectionPointSettingsDamage.curveCeiling);
+    
+    // Get formula types
+    FormulaType healthFormulaType = isBoss ? FormulaTypeBossHealth : FormulaTypeHealth;
+    FormulaType damageFormulaType = isBoss ? FormulaTypeBossDamage : FormulaTypeDamage;
+    
+    LOG_DEBUG("module.AutoBalance", "CalculateStatMultipliersForDisplay: Health formula type={}, Damage formula type={}",
+        healthFormulaType, damageFormulaType);
+    
+    // Calculate default multipliers
+    float defaultHealthMultiplier = getDefaultMultiplier(map, inflectionPointSettingsHealth, healthFormulaType);
+    float defaultDamageMultiplier = getDefaultMultiplier(map, inflectionPointSettingsDamage, damageFormulaType);
+    
+    LOG_DEBUG("module.AutoBalance", "CalculateStatMultipliersForDisplay: Default health multiplier={}, Default damage multiplier={}",
+        defaultHealthMultiplier, defaultDamageMultiplier);
+    
+    // Get stat modifiers
+    AutoBalanceStatModifiers statModifiers = getStatModifiersForDisplay(map, isBoss);
+    
+    LOG_DEBUG("module.AutoBalance", "CalculateStatMultipliersForDisplay: Stat modifiers - global={}, health={}, damage={}",
+        statModifiers.global, statModifiers.health, statModifiers.damage);
+    
+    // Calculate final multipliers
+    float healthMultiplier = defaultHealthMultiplier * statModifiers.global * statModifiers.health;
+    float damageMultiplier = defaultDamageMultiplier * statModifiers.global * statModifiers.damage;
+    
+    LOG_DEBUG("module.AutoBalance", "CalculateStatMultipliersForDisplay: Before caps - health multiplier={}, damage multiplier={}",
+        healthMultiplier, damageMultiplier);
+    LOG_DEBUG("module.AutoBalance", "CalculateStatMultipliersForDisplay: MinHPModifier={}, MinDamageModifier={}",
+        MinHPModifier, MinDamageModifier);
+    
+    // Apply minimum caps
+    if (healthMultiplier <= MinHPModifier)
+    {
+        LOG_DEBUG("module.AutoBalance", "CalculateStatMultipliersForDisplay: Health multiplier capped to MinHPModifier");
+        healthMultiplier = MinHPModifier;
+    }
+    if (damageMultiplier <= MinDamageModifier)
+    {
+        LOG_DEBUG("module.AutoBalance", "CalculateStatMultipliersForDisplay: Damage multiplier capped to MinDamageModifier");
+        damageMultiplier = MinDamageModifier;
+    }
+    
+    StatMultiplierDisplay result;
+    result.healthPercent = healthMultiplier * 100.0f;
+    result.damagePercent = damageMultiplier * 100.0f;
+    
+    LOG_DEBUG("module.AutoBalance", "CalculateStatMultipliersForDisplay: Final result - health={:.2f}%, damage={:.2f}%",
+        result.healthPercent, result.damagePercent);
+    
+    return result;
 }
 
 void getStatModifiersDebug(Map *map, Creature *creature, std::string message)
@@ -2414,10 +2975,44 @@ void UpdateMapPlayerStats(Map* map)
 
     //
     // Update the player count
-    // Minimum of 1 to prevent scaling weirdness when only GMs are in the instnace
+    // Minimum of 1 to prevent scaling weirdness when no players are in the instance
     //
 
-    mapABInfo->playerCount = mapABInfo->allMapPlayers.size() ? mapABInfo->allMapPlayers.size() : 1;
+    if (UseGroupSizeForDifficulty)
+    {
+        // Use group/raid size instead of actual in-dungeon player count
+        uint8 groupSize = 0;
+        Group* firstGroup = nullptr;
+        
+        // Find the first player in a group/raid and use that group's size
+        for (Player* player : mapABInfo->allMapPlayers)
+        {
+            if (!player)
+                continue;
+                
+            Group* group = player->GetGroup();
+            if (group)
+            {
+                firstGroup = group;
+                groupSize = group->GetMembersCount();
+                break;
+            }
+        }
+        
+        // If we found a group, use its size; otherwise fall back to in-map count
+        mapABInfo->playerCount = (groupSize > 0) ? groupSize : (mapABInfo->allMapPlayers.size() ? mapABInfo->allMapPlayers.size() : 1);
+        
+        LOG_DEBUG("module.AutoBalance", "AutoBalance::UpdateMapPlayerStats: Map {} ({}{}) | Using group size: groupSize = ({}), playerCount = ({}).",
+            instanceMap->GetMapName(),
+            instanceMap->GetId(),
+            instanceMap->GetInstanceId() ? "-" + std::to_string(instanceMap->GetInstanceId()) : "",
+            groupSize,
+            mapABInfo->playerCount);
+    }
+    else
+    {
+        mapABInfo->playerCount = mapABInfo->allMapPlayers.size() ? mapABInfo->allMapPlayers.size() : 1;
+    }
 
     LOG_DEBUG("module.AutoBalance", "AutoBalance::UpdateMapPlayerStats: Map {} ({}{}) | playerCount = ({}).",
         instanceMap->GetMapName(),
@@ -2600,9 +3195,9 @@ void AddPlayerToMap(Map* map, Player* player)
         return;
     }
     //
-    // Player is a GM
+    // Player is a GM - exclude based on config option
     //
-    else if (player->IsGameMaster())
+    else if (player->IsGameMaster() && !IncludeGMsInPlayerCount)
     {
         LOG_DEBUG("module.AutoBalance", "AutoBalance::AddPlayerToMap: Map {} ({}{}) | Game Master ({}) will not be added to the player list.",
             map->GetMapName(),

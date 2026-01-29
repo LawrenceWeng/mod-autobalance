@@ -25,10 +25,10 @@ void RemoveCreatureFromMapData(Creature* creature);
 uint64_t GetCurrentConfigTime();
 uint32 getBaseExpansionValueForLevel(const uint32 baseValues[3], uint8 targetLevel);
 float getBaseExpansionValueForLevel(const float baseValues[3], uint8 targetLevel);
-float getDefaultMultiplier(Map* map, AutoBalanceInflectionPointSettings inflectionPointSettings);
+float getDefaultMultiplier(Map* map, AutoBalanceInflectionPointSettings inflectionPointSettings, FormulaType formulaType = AUTOBALANCE_FORMULA_TAN);
 int GetForcedNumPlayers(int creatureId);
 World_Multipliers getWorldMultiplier(Map* map, BaseValueType baseValueType);
-AutoBalanceInflectionPointSettings getInflectionPointSettings(InstanceMap* instanceMap, bool isBoss = false);
+AutoBalanceInflectionPointSettings getInflectionPointSettings(InstanceMap* instanceMap, bool isBoss = false, StatType statType = AUTOBALANCE_STAT_HEALTH);
 void getStatModifiersDebug(Map* map, Creature* creature, std::string message);
 AutoBalanceStatModifiers getStatModifiers(Map* map, Creature* creature = nullptr);
 
@@ -60,5 +60,15 @@ void AddPlayerToMap(Map* map, Player* player);
 bool RemovePlayerFromMap(Map* map, Player* player);
 bool UpdateMapDataIfNeeded(Map* map, bool force = false);
 AutoBalanceMapInfo* GetMapInfo(Map* map);
+
+// Helper struct for stat multiplier display
+struct StatMultiplierDisplay
+{
+    float healthPercent;
+    float damagePercent;
+};
+
+StatMultiplierDisplay CalculateStatMultipliersForDisplay(InstanceMap* instanceMap, bool isBoss);
+AutoBalanceStatModifiers getStatModifiersForDisplay(Map* map, bool isBoss);
 
 #endif

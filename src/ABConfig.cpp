@@ -68,6 +68,8 @@ std::list<uint32> creatureIDsThatAreNotClones =
 };
 
 int8          PlayerCountDifficultyOffset;
+bool          UseGroupSizeForDifficulty;
+bool          IncludeGMsInPlayerCount;
 
 bool          LevelScaling;
 int8          LevelScalingSkipHigherLevels;
@@ -135,56 +137,140 @@ float         InflectionPoint;
 float         InflectionPointCurveFloor;
 float         InflectionPointCurveCeiling;
 float         InflectionPointBoss;
+float         InflectionPointBossInflection;
+float         InflectionPointHealth;
+float         InflectionPointMana;
+float         InflectionPointArmor;
+float         InflectionPointDamage;
+float         InflectionPointBossHealth;
+float         InflectionPointBossMana;
+float         InflectionPointBossArmor;
+float         InflectionPointBossDamage;
 
 float         InflectionPointHeroic;
 float         InflectionPointHeroicCurveFloor;
 float         InflectionPointHeroicCurveCeiling;
 float         InflectionPointHeroicBoss;
+float         InflectionPointHeroicBossInflection;
+float         InflectionPointHeroicHealth;
+float         InflectionPointHeroicMana;
+float         InflectionPointHeroicArmor;
+float         InflectionPointHeroicDamage;
+float         InflectionPointHeroicBossHealth;
+float         InflectionPointHeroicBossMana;
+float         InflectionPointHeroicBossArmor;
+float         InflectionPointHeroicBossDamage;
 
 float         InflectionPointRaid;
 float         InflectionPointRaidCurveFloor;
 float         InflectionPointRaidCurveCeiling;
 float         InflectionPointRaidBoss;
+float         InflectionPointRaidBossInflection;
+float         InflectionPointRaidHealth;
+float         InflectionPointRaidMana;
+float         InflectionPointRaidArmor;
+float         InflectionPointRaidDamage;
+float         InflectionPointRaidBossHealth;
+float         InflectionPointRaidBossMana;
+float         InflectionPointRaidBossArmor;
+float         InflectionPointRaidBossDamage;
 
 float         InflectionPointRaidHeroic;
 float         InflectionPointRaidHeroicCurveFloor;
 float         InflectionPointRaidHeroicCurveCeiling;
 float         InflectionPointRaidHeroicBoss;
+float         InflectionPointRaidHeroicBossInflection;
+float         InflectionPointRaidHeroicHealth;
+float         InflectionPointRaidHeroicMana;
+float         InflectionPointRaidHeroicArmor;
+float         InflectionPointRaidHeroicDamage;
+float         InflectionPointRaidHeroicBossHealth;
+float         InflectionPointRaidHeroicBossMana;
+float         InflectionPointRaidHeroicBossArmor;
+float         InflectionPointRaidHeroicBossDamage;
 
 float         InflectionPointRaid10M;
 float         InflectionPointRaid10MCurveFloor;
 float         InflectionPointRaid10MCurveCeiling;
 float         InflectionPointRaid10MBoss;
+float         InflectionPointRaid10MBossInflection;
+float         InflectionPointRaid10MHealth;
+float         InflectionPointRaid10MMana;
+float         InflectionPointRaid10MArmor;
+float         InflectionPointRaid10MDamage;
 
 float         InflectionPointRaid10MHeroic;
 float         InflectionPointRaid10MHeroicCurveFloor;
 float         InflectionPointRaid10MHeroicCurveCeiling;
 float         InflectionPointRaid10MHeroicBoss;
+float         InflectionPointRaid10MHeroicBossInflection;
+float         InflectionPointRaid10MHeroicHealth;
+float         InflectionPointRaid10MHeroicMana;
+float         InflectionPointRaid10MHeroicArmor;
+float         InflectionPointRaid10MHeroicDamage;
 
 float         InflectionPointRaid15M;
 float         InflectionPointRaid15MCurveFloor;
 float         InflectionPointRaid15MCurveCeiling;
 float         InflectionPointRaid15MBoss;
+float         InflectionPointRaid15MBossInflection;
+float         InflectionPointRaid15MHealth;
+float         InflectionPointRaid15MMana;
+float         InflectionPointRaid15MArmor;
+float         InflectionPointRaid15MDamage;
 
 float         InflectionPointRaid20M;
 float         InflectionPointRaid20MCurveFloor;
 float         InflectionPointRaid20MCurveCeiling;
 float         InflectionPointRaid20MBoss;
+float         InflectionPointRaid20MBossInflection;
+float         InflectionPointRaid20MHealth;
+float         InflectionPointRaid20MMana;
+float         InflectionPointRaid20MArmor;
+float         InflectionPointRaid20MDamage;
 
 float         InflectionPointRaid25M;
 float         InflectionPointRaid25MCurveFloor;
 float         InflectionPointRaid25MCurveCeiling;
 float         InflectionPointRaid25MBoss;
+float         InflectionPointRaid25MBossInflection;
+float         InflectionPointRaid25MHealth;
+float         InflectionPointRaid25MMana;
+float         InflectionPointRaid25MArmor;
+float         InflectionPointRaid25MDamage;
 
 float         InflectionPointRaid25MHeroic;
 float         InflectionPointRaid25MHeroicCurveFloor;
 float         InflectionPointRaid25MHeroicCurveCeiling;
 float         InflectionPointRaid25MHeroicBoss;
+float         InflectionPointRaid25MHeroicBossInflection;
+float         InflectionPointRaid25MHeroicHealth;
+float         InflectionPointRaid25MHeroicMana;
+float         InflectionPointRaid25MHeroicArmor;
+float         InflectionPointRaid25MHeroicDamage;
 
 float         InflectionPointRaid40M;
 float         InflectionPointRaid40MCurveFloor;
 float         InflectionPointRaid40MCurveCeiling;
 float         InflectionPointRaid40MBoss;
+float         InflectionPointRaid40MHealth;
+float         InflectionPointRaid40MMana;
+float         InflectionPointRaid40MArmor;
+float         InflectionPointRaid40MDamage;
+float         InflectionPointRaid40MBossInflection;
+
+//
+// FormulaType* (Health and Damage formula selection)
+//
+
+FormulaType   FormulaTypeHealth;
+FormulaType   FormulaTypeMana;
+FormulaType   FormulaTypeArmor;
+FormulaType   FormulaTypeDamage;
+FormulaType   FormulaTypeBossHealth;
+FormulaType   FormulaTypeBossMana;
+FormulaType   FormulaTypeBossArmor;
+FormulaType   FormulaTypeBossDamage;
 
 //
 // StatModifier*

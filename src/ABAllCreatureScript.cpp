@@ -645,11 +645,26 @@ void AutoBalance_AllCreatureScript::ModifyCreatureAttributes(Creature* creature)
     CreatureBaseStats const* origCreatureBaseStats = sObjectMgr->GetCreatureBaseStats(creatureABInfo->UnmodifiedLevel, creatureTemplate->unit_class);
     CreatureBaseStats const* newCreatureBaseStats = sObjectMgr->GetCreatureBaseStats(creatureABInfo->selectedLevel, creatureTemplate->unit_class);
 
-    // Inflection Point
-    AutoBalanceInflectionPointSettings inflectionPointSettings = getInflectionPointSettings(instanceMap, isBossOrBossSummon(creature));
+    // Inflection Point - Get separate settings for each stat
+    bool isBoss = isBossOrBossSummon(creature);
+    AutoBalanceInflectionPointSettings inflectionPointSettingsHealth = getInflectionPointSettings(instanceMap, isBoss, AUTOBALANCE_STAT_HEALTH);
+    AutoBalanceInflectionPointSettings inflectionPointSettingsMana = getInflectionPointSettings(instanceMap, isBoss, AUTOBALANCE_STAT_MANA);
+    AutoBalanceInflectionPointSettings inflectionPointSettingsArmor = getInflectionPointSettings(instanceMap, isBoss, AUTOBALANCE_STAT_ARMOR);
+    AutoBalanceInflectionPointSettings inflectionPointSettingsDamage = getInflectionPointSettings(instanceMap, isBoss, AUTOBALANCE_STAT_DAMAGE);
 
-    // Generate the default multiplier
-    float defaultMultiplier = getDefaultMultiplier(instanceMap, inflectionPointSettings);
+    // Generate the default multipliers (separate for each stat)
+    // Use boss formula types if this is a boss, otherwise use regular formula types
+    FormulaType healthFormulaType = isBoss ? FormulaTypeBossHealth : FormulaTypeHealth;
+    FormulaType manaFormulaType = isBoss ? FormulaTypeBossMana : FormulaTypeMana;
+    FormulaType armorFormulaType = isBoss ? FormulaTypeBossArmor : FormulaTypeArmor;
+    FormulaType damageFormulaType = isBoss ? FormulaTypeBossDamage : FormulaTypeDamage;
+    float defaultHealthMultiplier = getDefaultMultiplier(instanceMap, inflectionPointSettingsHealth, healthFormulaType);
+    float defaultManaMultiplier = getDefaultMultiplier(instanceMap, inflectionPointSettingsMana, manaFormulaType);
+    float defaultArmorMultiplier = getDefaultMultiplier(instanceMap, inflectionPointSettingsArmor, armorFormulaType);
+    float defaultDamageMultiplier = getDefaultMultiplier(instanceMap, inflectionPointSettingsDamage, damageFormulaType);
+    
+    // For backwards compatibility and hook support, use health multiplier as the "default"
+    float defaultMultiplier = defaultHealthMultiplier;
 
     if (!sABScriptMgr->OnAfterDefaultMultiplier(creature, defaultMultiplier))
         return;
@@ -676,14 +691,14 @@ void AutoBalance_AllCreatureScript::ModifyCreatureAttributes(Creature* creature)
         creatureABInfo->selectedLevel
     );
 
-    float healthMultiplier = defaultMultiplier * statMod_global * statMod_health;
+    float healthMultiplier = defaultHealthMultiplier * statMod_global * statMod_health;
     float scaledHealthMultiplier;
 
-    LOG_DEBUG("module.AutoBalance_StatGeneration", "AutoBalance_AllCreatureScript::ModifyCreatureAttributes: Creature {} ({}) | HealthMultiplier: ({}) = defaultMultiplier ({}) * statMod_global ({}) * statMod_health ({})",
+    LOG_DEBUG("module.AutoBalance_StatGeneration", "AutoBalance_AllCreatureScript::ModifyCreatureAttributes: Creature {} ({}) | HealthMultiplier: ({}) = defaultHealthMultiplier ({}) * statMod_global ({}) * statMod_health ({})",
         creature->GetName(),
         creatureABInfo->selectedLevel,
         healthMultiplier,
-        defaultMultiplier,
+        defaultHealthMultiplier,
         statMod_global,
         statMod_health
     );
@@ -803,14 +818,14 @@ void AutoBalance_AllCreatureScript::ModifyCreatureAttributes(Creature* creature)
         creatureABInfo->selectedLevel
     );
 
-    float manaMultiplier = defaultMultiplier * statMod_global * statMod_mana;
+    float manaMultiplier = defaultManaMultiplier * statMod_global * statMod_mana;
     float scaledManaMultiplier;
 
-    LOG_DEBUG("module.AutoBalance_StatGeneration", "AutoBalance_AllCreatureScript::ModifyCreatureAttributes: Creature {} ({}) | ManaMultiplier: ({}) = defaultMultiplier ({}) * statMod_global ({}) * statMod_mana ({})",
+    LOG_DEBUG("module.AutoBalance_StatGeneration", "AutoBalance_AllCreatureScript::ModifyCreatureAttributes: Creature {} ({}) | ManaMultiplier: ({}) = defaultManaMultiplier ({}) * statMod_global ({}) * statMod_mana ({})",
         creature->GetName(),
         creatureABInfo->selectedLevel,
         manaMultiplier,
-        defaultMultiplier,
+        defaultManaMultiplier,
         statMod_global,
         statMod_mana
     );
@@ -941,14 +956,14 @@ void AutoBalance_AllCreatureScript::ModifyCreatureAttributes(Creature* creature)
         creatureABInfo->selectedLevel
     );
 
-    float armorMultiplier = defaultMultiplier * statMod_global * statMod_armor;
+    float armorMultiplier = defaultArmorMultiplier * statMod_global * statMod_armor;
     float scaledArmorMultiplier;
 
-    LOG_DEBUG("module.AutoBalance_StatGeneration", "AutoBalance_AllCreatureScript::ModifyCreatureAttributes: Creature {} ({}) | armorMultiplier: ({}) = defaultMultiplier ({}) * statMod_global ({}) * statMod_armor ({})",
+    LOG_DEBUG("module.AutoBalance_StatGeneration", "AutoBalance_AllCreatureScript::ModifyCreatureAttributes: Creature {} ({}) | armorMultiplier: ({}) = defaultArmorMultiplier ({}) * statMod_global ({}) * statMod_armor ({})",
         creature->GetName(),
         creatureABInfo->selectedLevel,
         armorMultiplier,
-        defaultMultiplier,
+        defaultArmorMultiplier,
         statMod_global,
         statMod_armor
     );
@@ -1044,14 +1059,14 @@ void AutoBalance_AllCreatureScript::ModifyCreatureAttributes(Creature* creature)
         creatureABInfo->selectedLevel
     );
 
-    float damageMultiplier = defaultMultiplier * statMod_global * statMod_damage;
+    float damageMultiplier = defaultDamageMultiplier * statMod_global * statMod_damage;
     float scaledDamageMultiplier;
 
-    LOG_DEBUG("module.AutoBalance_StatGeneration", "AutoBalance_AllCreatureScript::ModifyCreatureAttributes: Creature {} ({}) | DamageMultiplier: ({}) = defaultMultiplier ({}) * statMod_global ({}) * statMod_damage ({})",
+    LOG_DEBUG("module.AutoBalance_StatGeneration", "AutoBalance_AllCreatureScript::ModifyCreatureAttributes: Creature {} ({}) | DamageMultiplier: ({}) = defaultDamageMultiplier ({}) * statMod_global ({}) * statMod_damage ({})",
         creature->GetName(),
         creatureABInfo->selectedLevel,
         damageMultiplier,
-        defaultMultiplier,
+        defaultDamageMultiplier,
         statMod_global,
         statMod_damage
     );

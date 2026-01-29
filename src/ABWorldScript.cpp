@@ -133,6 +133,8 @@ void AutoBalance_WorldScript::SetInitialWorldSettings()
 
     rewardEnabled               = sConfigMgr->GetOption<bool>  ("AutoBalance.reward.enable", 1);
     PlayerCountDifficultyOffset = sConfigMgr->GetOption<uint32>("AutoBalance.playerCountDifficultyOffset", 0);
+    UseGroupSizeForDifficulty    = sConfigMgr->GetOption<bool>  ("AutoBalance.UseGroupSizeForDifficulty", false);
+    IncludeGMsInPlayerCount      = sConfigMgr->GetOption<bool>  ("AutoBalance.IncludeGMsInPlayerCount", false);
     rewardRaid                  = sConfigMgr->GetOption<uint32>("AutoBalance.reward.raidToken", 49426);
     rewardDungeon               = sConfigMgr->GetOption<uint32>("AutoBalance.reward.dungeonToken", 47241);
     MinPlayerReward             = sConfigMgr->GetOption<float> ("AutoBalance.reward.MinPlayerReward", 1);
@@ -149,56 +151,210 @@ void AutoBalance_WorldScript::SetInitialWorldSettings()
     InflectionPointCurveFloor                = sConfigMgr->GetOption<float>("AutoBalance.InflectionPoint.CurveFloor", 0.0f, false);
     InflectionPointCurveCeiling              = sConfigMgr->GetOption<float>("AutoBalance.InflectionPoint.CurveCeiling", 1.0f, false);
     InflectionPointBoss                      = sConfigMgr->GetOption<float>("AutoBalance.InflectionPoint.BossModifier", sConfigMgr->GetOption<float>("AutoBalance.BossInflectionMult", 1.0f, false), false); // `AutoBalance.BossInflectionMult` for backwards compatibility
+    InflectionPointBossInflection            = sConfigMgr->GetOption<float>("AutoBalance.InflectionPoint.BossInflection", -1.0f, false);
+    InflectionPointHealth                    = sConfigMgr->GetOption<float>("AutoBalance.InflectionPoint.Health", -1.0f, false);
+    InflectionPointMana                      = sConfigMgr->GetOption<float>("AutoBalance.InflectionPoint.Mana", -1.0f, false);
+    InflectionPointArmor                     = sConfigMgr->GetOption<float>("AutoBalance.InflectionPoint.Armor", -1.0f, false);
+    InflectionPointDamage                    = sConfigMgr->GetOption<float>("AutoBalance.InflectionPoint.Damage", -1.0f, false);
+    InflectionPointBossHealth                = sConfigMgr->GetOption<float>("AutoBalance.InflectionPoint.Boss.Health", -1.0f, false);
+    InflectionPointBossMana                  = sConfigMgr->GetOption<float>("AutoBalance.InflectionPoint.Boss.Mana", -1.0f, false);
+    InflectionPointBossArmor                 = sConfigMgr->GetOption<float>("AutoBalance.InflectionPoint.Boss.Armor", -1.0f, false);
+    InflectionPointBossDamage                = sConfigMgr->GetOption<float>("AutoBalance.InflectionPoint.Boss.Damage", -1.0f, false);
 
     InflectionPointHeroic                    = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointHeroic", 0.5f, false);
     InflectionPointHeroicCurveFloor          = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointHeroic.CurveFloor", 0.0f, false);
     InflectionPointHeroicCurveCeiling        = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointHeroic.CurveCeiling", 1.0f, false);
     InflectionPointHeroicBoss                = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointHeroic.BossModifier", sConfigMgr->GetOption<float>("AutoBalance.BossInflectionMult", 1.0f, false), false); // `AutoBalance.BossInflectionMult` for backwards compatibility
+    InflectionPointHeroicBossInflection      = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointHeroic.BossInflection", -1.0f, false);
+    InflectionPointHeroicHealth              = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointHeroic.Health", -1.0f, false);
+    InflectionPointHeroicMana                = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointHeroic.Mana", -1.0f, false);
+    InflectionPointHeroicArmor               = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointHeroic.Armor", -1.0f, false);
+    InflectionPointHeroicDamage              = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointHeroic.Damage", -1.0f, false);
+    InflectionPointHeroicBossHealth          = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointHeroic.Boss.Health", -1.0f, false);
+    InflectionPointHeroicBossMana            = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointHeroic.Boss.Mana", -1.0f, false);
+    InflectionPointHeroicBossArmor           = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointHeroic.Boss.Armor", -1.0f, false);
+    InflectionPointHeroicBossDamage          = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointHeroic.Boss.Damage", -1.0f, false);
 
     InflectionPointRaid                      = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid", 0.5f, false);
     InflectionPointRaidCurveFloor            = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid.CurveFloor", 0.0f, false);
     InflectionPointRaidCurveCeiling          = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid.CurveCeiling", 1.0f, false);
     InflectionPointRaidBoss                  = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid.BossModifier", sConfigMgr->GetOption<float>("AutoBalance.BossInflectionMult", 1.0f, false), false); // `AutoBalance.BossInflectionMult` for backwards compatibility
+    InflectionPointRaidBossInflection        = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid.BossInflection", -1.0f, false);
+    InflectionPointRaidHealth                = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid.Health", -1.0f, false);
+    InflectionPointRaidMana                  = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid.Mana", -1.0f, false);
+    InflectionPointRaidArmor                 = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid.Armor", -1.0f, false);
+    InflectionPointRaidDamage                = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid.Damage", -1.0f, false);
+    InflectionPointRaidBossHealth            = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid.Boss.Health", -1.0f, false);
+    InflectionPointRaidBossMana              = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid.Boss.Mana", -1.0f, false);
+    InflectionPointRaidBossArmor             = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid.Boss.Armor", -1.0f, false);
+    InflectionPointRaidBossDamage            = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid.Boss.Damage", -1.0f, false);
 
     InflectionPointRaidHeroic                = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaidHeroic", 0.5f, false);
     InflectionPointRaidHeroicCurveFloor      = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaidHeroic.CurveFloor", 0.0f, false);
     InflectionPointRaidHeroicCurveCeiling    = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaidHeroic.CurveCeiling", 1.0f, false);
     InflectionPointRaidHeroicBoss            = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaidHeroic.BossModifier", sConfigMgr->GetOption<float>("AutoBalance.BossInflectionMult", 1.0f, false), false); // `AutoBalance.BossInflectionMult` for backwards compatibility
+    InflectionPointRaidHeroicBossInflection  = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaidHeroic.BossInflection", -1.0f, false);
+    InflectionPointRaidHeroicHealth          = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaidHeroic.Health", -1.0f, false);
+    InflectionPointRaidHeroicMana            = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaidHeroic.Mana", -1.0f, false);
+    InflectionPointRaidHeroicArmor           = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaidHeroic.Armor", -1.0f, false);
+    InflectionPointRaidHeroicDamage          = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaidHeroic.Damage", -1.0f, false);
+    InflectionPointRaidHeroicBossHealth      = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaidHeroic.Boss.Health", -1.0f, false);
+    InflectionPointRaidHeroicBossMana        = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaidHeroic.Boss.Mana", -1.0f, false);
+    InflectionPointRaidHeroicBossArmor       = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaidHeroic.Boss.Armor", -1.0f, false);
+    InflectionPointRaidHeroicBossDamage      = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaidHeroic.Boss.Damage", -1.0f, false);
 
     InflectionPointRaid10M                   = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10M", InflectionPointRaid, false);
     InflectionPointRaid10MCurveFloor         = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10M.CurveFloor", InflectionPointRaidCurveFloor, false);
     InflectionPointRaid10MCurveCeiling       = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10M.CurveCeiling", InflectionPointRaidCurveCeiling, false);
     InflectionPointRaid10MBoss               = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10M.BossModifier", InflectionPointRaidBoss, false);
+    InflectionPointRaid10MBossInflection     = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10M.BossInflection", InflectionPointRaidBossInflection, false);
+    InflectionPointRaid10MHealth             = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10M.Health", InflectionPointRaidHealth, false);
+    InflectionPointRaid10MMana               = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10M.Mana", InflectionPointRaidMana, false);
+    InflectionPointRaid10MArmor              = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10M.Armor", InflectionPointRaidArmor, false);
+    InflectionPointRaid10MDamage             = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10M.Damage", InflectionPointRaidDamage, false);
 
     InflectionPointRaid10MHeroic             = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10MHeroic", InflectionPointRaidHeroic, false);
     InflectionPointRaid10MHeroicCurveFloor   = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10MHeroic.CurveFloor", InflectionPointRaidHeroicCurveFloor, false);
     InflectionPointRaid10MHeroicCurveCeiling = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10MHeroic.CurveCeiling", InflectionPointRaidHeroicCurveCeiling, false);
     InflectionPointRaid10MHeroicBoss         = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10MHeroic.BossModifier", InflectionPointRaidHeroicBoss, false);
+    InflectionPointRaid10MHeroicBossInflection = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10MHeroic.BossInflection", InflectionPointRaidHeroicBossInflection, false);
+    InflectionPointRaid10MHeroicHealth       = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10MHeroic.Health", InflectionPointRaidHeroicHealth, false);
+    InflectionPointRaid10MHeroicMana         = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10MHeroic.Mana", InflectionPointRaidHeroicMana, false);
+    InflectionPointRaid10MHeroicArmor        = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10MHeroic.Armor", InflectionPointRaidHeroicArmor, false);
+    InflectionPointRaid10MHeroicDamage       = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid10MHeroic.Damage", InflectionPointRaidHeroicDamage, false);
 
     InflectionPointRaid15M                   = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid15M", InflectionPointRaid, false);
     InflectionPointRaid15MCurveFloor         = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid15M.CurveFloor", InflectionPointRaidCurveFloor, false);
     InflectionPointRaid15MCurveCeiling       = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid15M.CurveCeiling", InflectionPointRaidCurveCeiling, false);
     InflectionPointRaid15MBoss               = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid15M.BossModifier", InflectionPointRaidBoss, false);
+    InflectionPointRaid15MBossInflection     = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid15M.BossInflection", InflectionPointRaidBossInflection, false);
+    InflectionPointRaid15MHealth             = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid15M.Health", InflectionPointRaidHealth, false);
+    InflectionPointRaid15MMana               = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid15M.Mana", InflectionPointRaidMana, false);
+    InflectionPointRaid15MArmor              = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid15M.Armor", InflectionPointRaidArmor, false);
+    InflectionPointRaid15MDamage             = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid15M.Damage", InflectionPointRaidDamage, false);
 
     InflectionPointRaid20M                   = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid20M", InflectionPointRaid, false);
     InflectionPointRaid20MCurveFloor         = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid20M.CurveFloor", InflectionPointRaidCurveFloor, false);
     InflectionPointRaid20MCurveCeiling       = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid20M.CurveCeiling", InflectionPointRaidCurveCeiling, false);
     InflectionPointRaid20MBoss               = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid20M.BossModifier", InflectionPointRaidBoss, false);
+    InflectionPointRaid20MBossInflection     = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid20M.BossInflection", InflectionPointRaidBossInflection, false);
+    InflectionPointRaid20MHealth             = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid20M.Health", InflectionPointRaidHealth, false);
+    InflectionPointRaid20MMana               = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid20M.Mana", InflectionPointRaidMana, false);
+    InflectionPointRaid20MArmor              = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid20M.Armor", InflectionPointRaidArmor, false);
+    InflectionPointRaid20MDamage             = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid20M.Damage", InflectionPointRaidDamage, false);
 
     InflectionPointRaid25M                   = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25M", InflectionPointRaid, false);
     InflectionPointRaid25MCurveFloor         = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25M.CurveFloor", InflectionPointRaidCurveFloor, false);
     InflectionPointRaid25MCurveCeiling       = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25M.CurveCeiling", InflectionPointRaidCurveCeiling, false);
     InflectionPointRaid25MBoss               = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25M.BossModifier", InflectionPointRaidBoss, false);
+    InflectionPointRaid25MBossInflection     = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25M.BossInflection", InflectionPointRaidBossInflection, false);
+    InflectionPointRaid25MHealth             = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25M.Health", InflectionPointRaidHealth, false);
+    InflectionPointRaid25MMana               = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25M.Mana", InflectionPointRaidMana, false);
+    InflectionPointRaid25MArmor              = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25M.Armor", InflectionPointRaidArmor, false);
+    InflectionPointRaid25MDamage             = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25M.Damage", InflectionPointRaidDamage, false);
 
     InflectionPointRaid25MHeroic             = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25MHeroic", InflectionPointRaidHeroic, false);
     InflectionPointRaid25MHeroicCurveFloor   = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25MHeroic.CurveFloor", InflectionPointRaidHeroicCurveFloor, false);
     InflectionPointRaid25MHeroicCurveCeiling = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25MHeroic.CurveCeiling", InflectionPointRaidHeroicCurveCeiling, false);
     InflectionPointRaid25MHeroicBoss         = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25MHeroic.BossModifier", InflectionPointRaidHeroicBoss, false);
+    InflectionPointRaid25MHeroicBossInflection = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25MHeroic.BossInflection", InflectionPointRaidHeroicBossInflection, false);
+    InflectionPointRaid25MHeroicHealth       = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25MHeroic.Health", InflectionPointRaidHeroicHealth, false);
+    InflectionPointRaid25MHeroicMana         = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25MHeroic.Mana", InflectionPointRaidHeroicMana, false);
+    InflectionPointRaid25MHeroicArmor        = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25MHeroic.Armor", InflectionPointRaidHeroicArmor, false);
+    InflectionPointRaid25MHeroicDamage       = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid25MHeroic.Damage", InflectionPointRaidHeroicDamage, false);
 
     InflectionPointRaid40M                   = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid40M", InflectionPointRaid, false);
     InflectionPointRaid40MCurveFloor         = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid40M.CurveFloor", InflectionPointRaidCurveFloor, false);
     InflectionPointRaid40MCurveCeiling       = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid40M.CurveCeiling", InflectionPointRaidCurveCeiling, false);
     InflectionPointRaid40MBoss               = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid40M.BossModifier", InflectionPointRaidBoss, false);
+    InflectionPointRaid40MHealth             = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid40M.Health", InflectionPointRaidHealth, false);
+    InflectionPointRaid40MMana               = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid40M.Mana", InflectionPointRaidMana, false);
+    InflectionPointRaid40MArmor              = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid40M.Armor", InflectionPointRaidArmor, false);
+    InflectionPointRaid40MDamage             = sConfigMgr->GetOption<float>("AutoBalance.InflectionPointRaid40M.Damage", InflectionPointRaidDamage, false);
+
+    //
+    // FormulaType* (Health, Mana, Armor, and Damage formula selection)
+    //
+    std::string formulaTypeHealthStr = sConfigMgr->GetOption<std::string>("AutoBalance.FormulaType.Health", "tan", false);
+    std::string formulaTypeManaStr = sConfigMgr->GetOption<std::string>("AutoBalance.FormulaType.Mana", "tan", false);
+    std::string formulaTypeArmorStr = sConfigMgr->GetOption<std::string>("AutoBalance.FormulaType.Armor", "tan", false);
+    std::string formulaTypeDamageStr = sConfigMgr->GetOption<std::string>("AutoBalance.FormulaType.Damage", "tan", false);
+    std::string formulaTypeBossHealthStr = sConfigMgr->GetOption<std::string>("AutoBalance.FormulaType.Boss.Health", "tan", false);
+    std::string formulaTypeBossManaStr = sConfigMgr->GetOption<std::string>("AutoBalance.FormulaType.Boss.Mana", "tan", false);
+    std::string formulaTypeBossArmorStr = sConfigMgr->GetOption<std::string>("AutoBalance.FormulaType.Boss.Armor", "tan", false);
+    std::string formulaTypeBossDamageStr = sConfigMgr->GetOption<std::string>("AutoBalance.FormulaType.Boss.Damage", "tan", false);
+
+    if (formulaTypeHealthStr == "log")
+        FormulaTypeHealth = AUTOBALANCE_FORMULA_LOG;
+    else if (formulaTypeHealthStr == "exp")
+        FormulaTypeHealth = AUTOBALANCE_FORMULA_EXP;
+    else if (formulaTypeHealthStr == "pol")
+        FormulaTypeHealth = AUTOBALANCE_FORMULA_POL;
+    else
+        FormulaTypeHealth = AUTOBALANCE_FORMULA_TAN; // default
+
+    if (formulaTypeManaStr == "log")
+        FormulaTypeMana = AUTOBALANCE_FORMULA_LOG;
+    else if (formulaTypeManaStr == "exp")
+        FormulaTypeMana = AUTOBALANCE_FORMULA_EXP;
+    else if (formulaTypeManaStr == "pol")
+        FormulaTypeMana = AUTOBALANCE_FORMULA_POL;
+    else
+        FormulaTypeMana = AUTOBALANCE_FORMULA_TAN; // default
+
+    if (formulaTypeArmorStr == "log")
+        FormulaTypeArmor = AUTOBALANCE_FORMULA_LOG;
+    else if (formulaTypeArmorStr == "exp")
+        FormulaTypeArmor = AUTOBALANCE_FORMULA_EXP;
+    else if (formulaTypeArmorStr == "pol")
+        FormulaTypeArmor = AUTOBALANCE_FORMULA_POL;
+    else
+        FormulaTypeArmor = AUTOBALANCE_FORMULA_TAN; // default
+
+    if (formulaTypeDamageStr == "log")
+        FormulaTypeDamage = AUTOBALANCE_FORMULA_LOG;
+    else if (formulaTypeDamageStr == "exp")
+        FormulaTypeDamage = AUTOBALANCE_FORMULA_EXP;
+    else if (formulaTypeDamageStr == "pol")
+        FormulaTypeDamage = AUTOBALANCE_FORMULA_POL;
+    else
+        FormulaTypeDamage = AUTOBALANCE_FORMULA_TAN; // default
+
+    if (formulaTypeBossHealthStr == "log")
+        FormulaTypeBossHealth = AUTOBALANCE_FORMULA_LOG;
+    else if (formulaTypeBossHealthStr == "exp")
+        FormulaTypeBossHealth = AUTOBALANCE_FORMULA_EXP;
+    else if (formulaTypeBossHealthStr == "pol")
+        FormulaTypeBossHealth = AUTOBALANCE_FORMULA_POL;
+    else
+        FormulaTypeBossHealth = AUTOBALANCE_FORMULA_TAN; // default
+
+    if (formulaTypeBossManaStr == "log")
+        FormulaTypeBossMana = AUTOBALANCE_FORMULA_LOG;
+    else if (formulaTypeBossManaStr == "exp")
+        FormulaTypeBossMana = AUTOBALANCE_FORMULA_EXP;
+    else if (formulaTypeBossManaStr == "pol")
+        FormulaTypeBossMana = AUTOBALANCE_FORMULA_POL;
+    else
+        FormulaTypeBossMana = AUTOBALANCE_FORMULA_TAN; // default
+
+    if (formulaTypeBossArmorStr == "log")
+        FormulaTypeBossArmor = AUTOBALANCE_FORMULA_LOG;
+    else if (formulaTypeBossArmorStr == "exp")
+        FormulaTypeBossArmor = AUTOBALANCE_FORMULA_EXP;
+    else if (formulaTypeBossArmorStr == "pol")
+        FormulaTypeBossArmor = AUTOBALANCE_FORMULA_POL;
+    else
+        FormulaTypeBossArmor = AUTOBALANCE_FORMULA_TAN; // default
+
+    if (formulaTypeBossDamageStr == "log")
+        FormulaTypeBossDamage = AUTOBALANCE_FORMULA_LOG;
+    else if (formulaTypeBossDamageStr == "exp")
+        FormulaTypeBossDamage = AUTOBALANCE_FORMULA_EXP;
+    else if (formulaTypeBossDamageStr == "pol")
+        FormulaTypeBossDamage = AUTOBALANCE_FORMULA_POL;
+    else
+        FormulaTypeBossDamage = AUTOBALANCE_FORMULA_TAN; // default
 
     //
     // StatModifier*
@@ -461,16 +617,16 @@ void AutoBalance_WorldScript::SetInitialWorldSettings()
     LevelScalingDynamicLevelCeilingHeroicRaids    = sConfigMgr->GetOption<uint8>("AutoBalance.LevelScaling.DynamicLevel.Ceiling.HeroicRaids", 3);
     LevelScalingDynamicLevelFloorHeroicRaids      = sConfigMgr->GetOption<uint8>("AutoBalance.LevelScaling.DynamicLevel.Floor.HeroicRaids", 5);
 
-    if (sConfigMgr->GetOption<float>("AutoBalance.LevelEndGameBoost", false, false))
+    /*if (sConfigMgr->GetOption<float>("AutoBalance.LevelEndGameBoost", 0, false))
         LOG_WARN("server.loading", "mod-autobalance: deprecated value `AutoBalance.LevelEndGameBoost` defined in `AutoBalance.conf`. This variable will be removed in a future release. Please see `AutoBalance.conf.dist` for more details.");
 
-    LevelScalingEndGameBoost = sConfigMgr->GetOption<bool>("AutoBalance.LevelScaling.EndGameBoost", sConfigMgr->GetOption<bool>("AutoBalance.LevelEndGameBoost", 1, false), true);
+    LevelScalingEndGameBoost = sConfigMgr->GetOption<int>("AutoBalance.LevelScaling.EndGameBoost", 0, true) != 0 || sConfigMgr->GetOption<int>("AutoBalance.LevelEndGameBoost", 0, false) != 0;
 
     if (LevelScalingEndGameBoost)
     {
         LOG_WARN("server.loading", "mod-autobalance: `AutoBalance.LevelScaling.EndGameBoost` is enabled in the configuration, but is not currently implemented. No effect.");
         LevelScalingEndGameBoost = 0;
-    }
+    }*/
 
     //
     // RewardScaling.*

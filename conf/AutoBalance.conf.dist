@@ -163,6 +163,34 @@ AutoBalance.MinPlayers.Heroic.PerInstance = ""
 #
 #           Default: 1.0
 #
+#       BossInflection
+#           If set (value >= 0), this absolute inflection point value will be used for bosses instead of multiplying
+#           the regular inflection point by BossModifier. This allows you to set a completely independent inflection
+#           point for bosses. If not set (default -1), the BossModifier will be used instead.
+#
+#           Default: -1 (not set, uses BossModifier)
+#
+#       Health | Mana | Armor | Damage
+#           Per-stat inflection point values. If set (value >= 0), these values will be used for the respective stat
+#           instead of the general inflection point. This allows fine-grained control over how each stat scales with
+#           player count. If not set (left blank, defaults to -1), the general inflection point will be used for that stat.
+#
+#           Example: If AutoBalance.InflectionPoint.Health=0.3 is set, health will use 0.3 as its inflection point,
+#                    while other stats will use the general AutoBalance.InflectionPoint value.
+#
+#           Default: blank (not set, uses general inflection point)
+#
+#       Boss.Health | Boss.Mana | Boss.Armor | Boss.Damage
+#           Per-stat inflection point values for bosses only. If set (value >= 0), these values will be used for the
+#           respective stat on bosses instead of the general boss inflection point (BossInflection or BossModifier).
+#           This allows fine-grained control over how each boss stat scales with player count.
+#           If not set (left blank, defaults to -1), the general boss inflection point will be used for that stat.
+#
+#           Example: If AutoBalance.InflectionPoint.Boss.Health=0.4 is set, boss health will use 0.4 as its inflection point,
+#                    while other boss stats will use the general boss inflection point.
+#
+#           Default: blank (not set, uses general boss inflection point)
+#
 #
 #     An interactive spreadsheet is available for you to visually see what effect your settings have on the difficulty curve.
 #
@@ -176,24 +204,60 @@ AutoBalance.InflectionPoint=0.5
 AutoBalance.InflectionPoint.CurveFloor=0.0
 AutoBalance.InflectionPoint.CurveCeiling=1.0
 AutoBalance.InflectionPoint.BossModifier=1.0
+AutoBalance.InflectionPoint.BossInflection=0.5
+AutoBalance.InflectionPoint.Health=
+AutoBalance.InflectionPoint.Mana=
+AutoBalance.InflectionPoint.Armor=
+AutoBalance.InflectionPoint.Damage=
+AutoBalance.InflectionPoint.Boss.Health=
+AutoBalance.InflectionPoint.Boss.Mana=
+AutoBalance.InflectionPoint.Boss.Armor=
+AutoBalance.InflectionPoint.Boss.Damage=
 
 ### 5-player heroic dungeons
 AutoBalance.InflectionPointHeroic=0.5
 AutoBalance.InflectionPointHeroic.CurveFloor=0.0
 AutoBalance.InflectionPointHeroic.CurveCeiling=1.0
 AutoBalance.InflectionPointHeroic.BossModifier=1.0
+AutoBalance.InflectionPointHeroic.BossInflection=0.5
+AutoBalance.InflectionPointHeroic.Health=
+AutoBalance.InflectionPointHeroic.Mana=
+AutoBalance.InflectionPointHeroic.Armor=
+AutoBalance.InflectionPointHeroic.Damage=
+AutoBalance.InflectionPointHeroic.Boss.Health=
+AutoBalance.InflectionPointHeroic.Boss.Mana=
+AutoBalance.InflectionPointHeroic.Boss.Armor=
+AutoBalance.InflectionPointHeroic.Boss.Damage=
 
 ### Default for all raids
 AutoBalance.InflectionPointRaid=0.5
 AutoBalance.InflectionPointRaid.CurveFloor=0.0
 AutoBalance.InflectionPointRaid.CurveCeiling=1.0
 AutoBalance.InflectionPointRaid.BossModifier=1.0
+AutoBalance.InflectionPointRaid.BossInflection=0.5
+AutoBalance.InflectionPointRaid.Health=
+AutoBalance.InflectionPointRaid.Mana=
+AutoBalance.InflectionPointRaid.Armor=
+AutoBalance.InflectionPointRaid.Damage=
+AutoBalance.InflectionPointRaid.Boss.Health=
+AutoBalance.InflectionPointRaid.Boss.Mana=
+AutoBalance.InflectionPointRaid.Boss.Armor=
+AutoBalance.InflectionPointRaid.Boss.Damage=
 
 ### Default for all heroic raids
 AutoBalance.InflectionPointRaidHeroic=0.5
 AutoBalance.InflectionPointRaidHeroic.CurveFloor=0.0
 AutoBalance.InflectionPointRaidHeroic.CurveCeiling=1.0
 AutoBalance.InflectionPointRaidHeroic.BossModifier=1.0
+AutoBalance.InflectionPointRaidHeroic.BossInflection=0.5
+AutoBalance.InflectionPointRaidHeroic.Health=
+AutoBalance.InflectionPointRaidHeroic.Mana=
+AutoBalance.InflectionPointRaidHeroic.Armor=
+AutoBalance.InflectionPointRaidHeroic.Damage=
+AutoBalance.InflectionPointRaidHeroic.Boss.Health=
+AutoBalance.InflectionPointRaidHeroic.Boss.Mana=
+AutoBalance.InflectionPointRaidHeroic.Boss.Armor=
+AutoBalance.InflectionPointRaidHeroic.Boss.Damage=
 
 ###
 ### By default, all instances use the settings configured above. To customize settings for
@@ -206,42 +270,77 @@ AutoBalance.InflectionPointRaid10M=
 AutoBalance.InflectionPointRaid10M.CurveFloor=
 AutoBalance.InflectionPointRaid10M.CurveCeiling=
 AutoBalance.InflectionPointRaid10M.BossModifier=
+AutoBalance.InflectionPointRaid10M.BossInflection=
+AutoBalance.InflectionPointRaid10M.Health=
+AutoBalance.InflectionPointRaid10M.Mana=
+AutoBalance.InflectionPointRaid10M.Armor=
+AutoBalance.InflectionPointRaid10M.Damage=
 
 ### 10-player heroic raids
 AutoBalance.InflectionPointRaid10MHeroic=
 AutoBalance.InflectionPointRaid10MHeroic.CurveFloor=
 AutoBalance.InflectionPointRaid10MHeroic.CurveCeiling=
 AutoBalance.InflectionPointRaid10MHeroic.BossModifier=
+AutoBalance.InflectionPointRaid10MHeroic.BossInflection=
+AutoBalance.InflectionPointRaid10MHeroic.Health=
+AutoBalance.InflectionPointRaid10MHeroic.Mana=
+AutoBalance.InflectionPointRaid10MHeroic.Armor=
+AutoBalance.InflectionPointRaid10MHeroic.Damage=
 
 ### 15-player raids
 AutoBalance.InflectionPointRaid15M=
 AutoBalance.InflectionPointRaid15M.CurveFloor=
 AutoBalance.InflectionPointRaid15M.CurveCeiling=
 AutoBalance.InflectionPointRaid15M.BossModifier=
+AutoBalance.InflectionPointRaid15M.BossInflection=
+AutoBalance.InflectionPointRaid15M.Health=
+AutoBalance.InflectionPointRaid15M.Mana=
+AutoBalance.InflectionPointRaid15M.Armor=
+AutoBalance.InflectionPointRaid15M.Damage=
 
 ### 20-player raids
 AutoBalance.InflectionPointRaid20M=
 AutoBalance.InflectionPointRaid20M.CurveFloor=
 AutoBalance.InflectionPointRaid20M.CurveCeiling=
 AutoBalance.InflectionPointRaid20M.BossModifier=
+AutoBalance.InflectionPointRaid20M.BossInflection=
+AutoBalance.InflectionPointRaid20M.Health=
+AutoBalance.InflectionPointRaid20M.Mana=
+AutoBalance.InflectionPointRaid20M.Armor=
+AutoBalance.InflectionPointRaid20M.Damage=
 
 ### 25-player raids
 AutoBalance.InflectionPointRaid25M=
 AutoBalance.InflectionPointRaid25M.CurveFloor=
 AutoBalance.InflectionPointRaid25M.CurveCeiling=
 AutoBalance.InflectionPointRaid25M.BossModifier=
+AutoBalance.InflectionPointRaid25M.BossInflection=
+AutoBalance.InflectionPointRaid25M.Health=
+AutoBalance.InflectionPointRaid25M.Mana=
+AutoBalance.InflectionPointRaid25M.Armor=
+AutoBalance.InflectionPointRaid25M.Damage=
 
 ### 25-player heroic raids
 AutoBalance.InflectionPointRaid25MHeroic=
 AutoBalance.InflectionPointRaid25MHeroic.CurveFloor=
 AutoBalance.InflectionPointRaid25MHeroic.CurveCeiling=
 AutoBalance.InflectionPointRaid25MHeroic.BossModifier=
+AutoBalance.InflectionPointRaid25MHeroic.BossInflection=
+AutoBalance.InflectionPointRaid25MHeroic.Health=
+AutoBalance.InflectionPointRaid25MHeroic.Mana=
+AutoBalance.InflectionPointRaid25MHeroic.Armor=
+AutoBalance.InflectionPointRaid25MHeroic.Damage=
 
 ### 40-player raids
 AutoBalance.InflectionPointRaid40M=
 AutoBalance.InflectionPointRaid40M.CurveFloor=
 AutoBalance.InflectionPointRaid40M.CurveCeiling=
 AutoBalance.InflectionPointRaid40M.BossModifier=
+AutoBalance.InflectionPointRaid40M.BossInflection=
+AutoBalance.InflectionPointRaid40M.Health=
+AutoBalance.InflectionPointRaid40M.Mana=
+AutoBalance.InflectionPointRaid40M.Armor=
+AutoBalance.InflectionPointRaid40M.Damage=
 
 #
 #     AutoBalance.InflectionPoint.PerInstance
@@ -284,6 +383,95 @@ AutoBalance.InflectionPoint.Boss.PerInstance=""
 #        Offset of players inside an instance. Affects all instance types.
 #        Default:     0
 AutoBalance.playerCountDifficultyOffset=0
+
+#
+#     AutoBalance.UseGroupSizeForDifficulty
+#        If enabled, difficulty scaling will be based on the group/raid size instead of the number
+#        of players actually present in the dungeon. When enabled, the system will check the first
+#        player in the instance that is part of a group/raid and use that group's member count.
+#
+#        This is useful if you want difficulty to remain constant even if some group members are
+#        outside the instance. For example, if a 5-player group enters a dungeon but 2 players
+#        are outside, the dungeon will still scale for 5 players.
+#
+#        If no players in the instance are in a group, the system will fall back to using the
+#        actual in-dungeon player count.
+#
+#        Default: false (use actual in-dungeon player count)
+AutoBalance.UseGroupSizeForDifficulty=0
+
+#
+#     AutoBalance.IncludeGMsInPlayerCount
+#        If enabled, Game Masters will be included in the player count for difficulty scaling.
+#        When disabled (default), GMs are excluded from the player count, so difficulty will
+#        not scale based on the number of GMs in the instance.
+#
+#        This is useful if you want to test dungeons as a GM and still have them scale
+#        properly, or if GMs are participating in content legitimately.
+#
+#        Default: false (exclude GMs from player count)
+AutoBalance.IncludeGMsInPlayerCount=0
+
+##########################
+#
+# Stat Scaling - Formula Types
+#
+##########################
+
+#
+#     AutoBalance.FormulaType.Health
+#     AutoBalance.FormulaType.Mana
+#     AutoBalance.FormulaType.Armor
+#     AutoBalance.FormulaType.Damage
+#        Selects which mathematical formula to use when calculating the scaling multiplier
+#        for health, mana, armor, and damage respectively.
+#
+#        Possible values: "tan", "log", "exp", "pol"
+#
+#        "tan" (default):
+#            Uses hyperbolic tangent (tanh) function. This is the original formula that provides
+#            a smooth S-curve scaling behavior.
+#
+#        "log":
+#            Uses logarithmic scaling. Provides slower initial scaling that accelerates as player
+#            count increases. Good for instances where you want difficulty to ramp up more gradually
+#            at lower player counts.
+#
+#        "exp":
+#            Uses exponential scaling. Provides faster initial scaling that decelerates as player
+#            count increases. Good for instances where you want difficulty to ramp up quickly at
+#            lower player counts.
+#
+#        "pol":
+#            Uses polynomial scaling (power function). Provides a moderate curve that can be tuned
+#            via the power value. Good for instances where you want a balanced scaling curve.
+#
+#        Default: "tan" for all stats
+#
+AutoBalance.FormulaType.Health=tan
+AutoBalance.FormulaType.Mana=tan
+AutoBalance.FormulaType.Armor=tan
+AutoBalance.FormulaType.Damage=tan
+
+#
+#     AutoBalance.FormulaType.Boss.Health
+#     AutoBalance.FormulaType.Boss.Mana
+#     AutoBalance.FormulaType.Boss.Armor
+#     AutoBalance.FormulaType.Boss.Damage
+#        Selects which mathematical formula to use when calculating the scaling multiplier
+#        for boss health, mana, armor, and damage respectively. These settings apply only to creatures
+#        considered instance bosses (from dungeons or raids).
+#
+#        Possible values: "tan", "log", "exp", "pol"
+#
+#        See the descriptions above for details on each formula type.
+#
+#        Default: "tan" for all boss stats
+#
+AutoBalance.FormulaType.Boss.Health=tan
+AutoBalance.FormulaType.Boss.Mana=tan
+AutoBalance.FormulaType.Boss.Armor=tan
+AutoBalance.FormulaType.Boss.Damage=tan
 
 ##########################
 #

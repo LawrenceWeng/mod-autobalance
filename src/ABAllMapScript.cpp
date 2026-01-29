@@ -97,6 +97,16 @@ void AutoBalance_AllMapScript::OnPlayerEnterAll(Map* map, Player* player)
                                 mapABInfo->playerCount,
                                 mapABInfo->adjustedPlayerCount);
 
+                            // Calculate and display stat multipliers for creatures and bosses
+                            StatMultiplierDisplay creatureStats = CalculateStatMultipliersForDisplay(instanceMap, false);
+                            StatMultiplierDisplay bossStats = CalculateStatMultipliersForDisplay(instanceMap, true);
+                            
+                            chatHandle.PSendSysMessage("|cff00ff00AutoBalance:|r Difficulty set for {} players.", mapABInfo->adjustedPlayerCount);
+                            chatHandle.PSendSysMessage("|cff00ff00Creatures:|r Health: {:.1f}% | Damage: {:.1f}%", 
+                                creatureStats.healthPercent, creatureStats.damagePercent);
+                            chatHandle.PSendSysMessage("|cff00ff00Bosses:|r Health: {:.1f}% | Damage: {:.1f}%", 
+                                bossStats.healthPercent, bossStats.damagePercent);
+
                             // notify GMs that they won't be accounted for
                             if (player->IsGameMaster())
                                 chatHandle.PSendSysMessage(ABGetLocaleText(locale, "welcome_to_gm").c_str());

@@ -38,6 +38,8 @@ extern std::list<uint32>                                             spellIdsToN
 extern std::list<uint32>                                             creatureIDsThatAreNotClones;
 
 extern int8                                                          PlayerCountDifficultyOffset;
+extern bool                                                          UseGroupSizeForDifficulty;
+extern bool                                                          IncludeGMsInPlayerCount;
 
 extern bool                                                          LevelScaling;
 extern int8                                                          LevelScalingSkipHigherLevels;
@@ -105,56 +107,140 @@ extern float                                                         InflectionP
 extern float                                                         InflectionPointCurveFloor;
 extern float                                                         InflectionPointCurveCeiling;
 extern float                                                         InflectionPointBoss;
+extern float                                                         InflectionPointBossInflection;
+extern float                                                         InflectionPointHealth;
+extern float                                                         InflectionPointMana;
+extern float                                                         InflectionPointArmor;
+extern float                                                         InflectionPointDamage;
+extern float                                                         InflectionPointBossHealth;
+extern float                                                         InflectionPointBossMana;
+extern float                                                         InflectionPointBossArmor;
+extern float                                                         InflectionPointBossDamage;
 
 extern float                                                         InflectionPointHeroic;
 extern float                                                         InflectionPointHeroicCurveFloor;
 extern float                                                         InflectionPointHeroicCurveCeiling;
 extern float                                                         InflectionPointHeroicBoss;
+extern float                                                         InflectionPointHeroicBossInflection;
+extern float                                                         InflectionPointHeroicHealth;
+extern float                                                         InflectionPointHeroicMana;
+extern float                                                         InflectionPointHeroicArmor;
+extern float                                                         InflectionPointHeroicDamage;
+extern float                                                         InflectionPointHeroicBossHealth;
+extern float                                                         InflectionPointHeroicBossMana;
+extern float                                                         InflectionPointHeroicBossArmor;
+extern float                                                         InflectionPointHeroicBossDamage;
 
 extern float                                                         InflectionPointRaid;
 extern float                                                         InflectionPointRaidCurveFloor;
 extern float                                                         InflectionPointRaidCurveCeiling;
 extern float                                                         InflectionPointRaidBoss;
+extern float                                                         InflectionPointRaidBossInflection;
+extern float                                                         InflectionPointRaidHealth;
+extern float                                                         InflectionPointRaidMana;
+extern float                                                         InflectionPointRaidArmor;
+extern float                                                         InflectionPointRaidDamage;
+extern float                                                         InflectionPointRaidBossHealth;
+extern float                                                         InflectionPointRaidBossMana;
+extern float                                                         InflectionPointRaidBossArmor;
+extern float                                                         InflectionPointRaidBossDamage;
 
 extern float                                                         InflectionPointRaidHeroic;
 extern float                                                         InflectionPointRaidHeroicCurveFloor;
 extern float                                                         InflectionPointRaidHeroicCurveCeiling;
 extern float                                                         InflectionPointRaidHeroicBoss;
+extern float                                                         InflectionPointRaidHeroicBossInflection;
+extern float                                                         InflectionPointRaidHeroicHealth;
+extern float                                                         InflectionPointRaidHeroicMana;
+extern float                                                         InflectionPointRaidHeroicArmor;
+extern float                                                         InflectionPointRaidHeroicDamage;
+extern float                                                         InflectionPointRaidHeroicBossHealth;
+extern float                                                         InflectionPointRaidHeroicBossMana;
+extern float                                                         InflectionPointRaidHeroicBossArmor;
+extern float                                                         InflectionPointRaidHeroicBossDamage;
 
 extern float                                                         InflectionPointRaid10M;
 extern float                                                         InflectionPointRaid10MCurveFloor;
 extern float                                                         InflectionPointRaid10MCurveCeiling;
 extern float                                                         InflectionPointRaid10MBoss;
+extern float                                                         InflectionPointRaid10MBossInflection;
+extern float                                                         InflectionPointRaid10MHealth;
+extern float                                                         InflectionPointRaid10MMana;
+extern float                                                         InflectionPointRaid10MArmor;
+extern float                                                         InflectionPointRaid10MDamage;
 
 extern float                                                         InflectionPointRaid10MHeroic;
 extern float                                                         InflectionPointRaid10MHeroicCurveFloor;
 extern float                                                         InflectionPointRaid10MHeroicCurveCeiling;
 extern float                                                         InflectionPointRaid10MHeroicBoss;
+extern float                                                         InflectionPointRaid10MHeroicBossInflection;
+extern float                                                         InflectionPointRaid10MHeroicHealth;
+extern float                                                         InflectionPointRaid10MHeroicMana;
+extern float                                                         InflectionPointRaid10MHeroicArmor;
+extern float                                                         InflectionPointRaid10MHeroicDamage;
 
 extern float                                                         InflectionPointRaid15M;
 extern float                                                         InflectionPointRaid15MCurveFloor;
 extern float                                                         InflectionPointRaid15MCurveCeiling;
 extern float                                                         InflectionPointRaid15MBoss;
+extern float                                                         InflectionPointRaid15MBossInflection;
+extern float                                                         InflectionPointRaid15MHealth;
+extern float                                                         InflectionPointRaid15MMana;
+extern float                                                         InflectionPointRaid15MArmor;
+extern float                                                         InflectionPointRaid15MDamage;
 
 extern float                                                         InflectionPointRaid20M;
 extern float                                                         InflectionPointRaid20MCurveFloor;
 extern float                                                         InflectionPointRaid20MCurveCeiling;
 extern float                                                         InflectionPointRaid20MBoss;
+extern float                                                         InflectionPointRaid20MBossInflection;
+extern float                                                         InflectionPointRaid20MHealth;
+extern float                                                         InflectionPointRaid20MMana;
+extern float                                                         InflectionPointRaid20MArmor;
+extern float                                                         InflectionPointRaid20MDamage;
 
 extern float                                                         InflectionPointRaid25M;
 extern float                                                         InflectionPointRaid25MCurveFloor;
 extern float                                                         InflectionPointRaid25MCurveCeiling;
 extern float                                                         InflectionPointRaid25MBoss;
+extern float                                                         InflectionPointRaid25MBossInflection;
+extern float                                                         InflectionPointRaid25MHealth;
+extern float                                                         InflectionPointRaid25MMana;
+extern float                                                         InflectionPointRaid25MArmor;
+extern float                                                         InflectionPointRaid25MDamage;
 
 extern float                                                         InflectionPointRaid25MHeroic;
 extern float                                                         InflectionPointRaid25MHeroicCurveFloor;
 extern float                                                         InflectionPointRaid25MHeroicCurveCeiling;
 extern float                                                         InflectionPointRaid25MHeroicBoss;
+extern float                                                         InflectionPointRaid25MHeroicBossInflection;
+extern float                                                         InflectionPointRaid25MHeroicHealth;
+extern float                                                         InflectionPointRaid25MHeroicMana;
+extern float                                                         InflectionPointRaid25MHeroicArmor;
+extern float                                                         InflectionPointRaid25MHeroicDamage;
 
 extern float                                                         InflectionPointRaid40M;
 extern float                                                         InflectionPointRaid40MCurveFloor;
 extern float                                                         InflectionPointRaid40MCurveCeiling;
 extern float                                                         InflectionPointRaid40MBoss;
+extern float                                                         InflectionPointRaid40MBossInflection;
+extern float                                                         InflectionPointRaid40MHealth;
+extern float                                                         InflectionPointRaid40MMana;
+extern float                                                         InflectionPointRaid40MArmor;
+extern float                                                         InflectionPointRaid40MDamage;
+
+//
+// FormulaType* (Health and Damage formula selection)
+//
+
+extern FormulaType                                                    FormulaTypeHealth;
+extern FormulaType                                                    FormulaTypeMana;
+extern FormulaType                                                    FormulaTypeArmor;
+extern FormulaType                                                    FormulaTypeDamage;
+extern FormulaType                                                    FormulaTypeBossHealth;
+extern FormulaType                                                    FormulaTypeBossMana;
+extern FormulaType                                                    FormulaTypeBossArmor;
+extern FormulaType                                                    FormulaTypeBossDamage;
 
 //
 // StatModifier*
