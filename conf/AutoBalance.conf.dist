@@ -200,11 +200,11 @@ AutoBalance.MinPlayers.Heroic.PerInstance = ""
 #     The "Final Multiplier" value is the actual multiplier that will be applied to enemies in a given dungeon.
 
 ### 5-player dungeons
-AutoBalance.InflectionPoint=0.5
+AutoBalance.InflectionPoint=0.9
 AutoBalance.InflectionPoint.CurveFloor=0.0
 AutoBalance.InflectionPoint.CurveCeiling=1.0
 AutoBalance.InflectionPoint.BossModifier=1.0
-AutoBalance.InflectionPoint.BossInflection=0.5
+AutoBalance.InflectionPoint.BossInflection=0.9
 AutoBalance.InflectionPoint.Health=
 AutoBalance.InflectionPoint.Mana=
 AutoBalance.InflectionPoint.Armor=
@@ -212,14 +212,14 @@ AutoBalance.InflectionPoint.Damage=
 AutoBalance.InflectionPoint.Boss.Health=
 AutoBalance.InflectionPoint.Boss.Mana=
 AutoBalance.InflectionPoint.Boss.Armor=
-AutoBalance.InflectionPoint.Boss.Damage=
+AutoBalance.InflectionPoint.Boss.Damage=0.7
 
 ### 5-player heroic dungeons
-AutoBalance.InflectionPointHeroic=0.5
+AutoBalance.InflectionPointHeroic=0.9
 AutoBalance.InflectionPointHeroic.CurveFloor=0.0
 AutoBalance.InflectionPointHeroic.CurveCeiling=1.0
 AutoBalance.InflectionPointHeroic.BossModifier=1.0
-AutoBalance.InflectionPointHeroic.BossInflection=0.5
+AutoBalance.InflectionPointHeroic.BossInflection=0.9
 AutoBalance.InflectionPointHeroic.Health=
 AutoBalance.InflectionPointHeroic.Mana=
 AutoBalance.InflectionPointHeroic.Armor=
@@ -227,14 +227,14 @@ AutoBalance.InflectionPointHeroic.Damage=
 AutoBalance.InflectionPointHeroic.Boss.Health=
 AutoBalance.InflectionPointHeroic.Boss.Mana=
 AutoBalance.InflectionPointHeroic.Boss.Armor=
-AutoBalance.InflectionPointHeroic.Boss.Damage=
+AutoBalance.InflectionPointHeroic.Boss.Damage=0.7
 
 ### Default for all raids
-AutoBalance.InflectionPointRaid=0.5
+AutoBalance.InflectionPointRaid=0.9
 AutoBalance.InflectionPointRaid.CurveFloor=0.0
 AutoBalance.InflectionPointRaid.CurveCeiling=1.0
 AutoBalance.InflectionPointRaid.BossModifier=1.0
-AutoBalance.InflectionPointRaid.BossInflection=0.5
+AutoBalance.InflectionPointRaid.BossInflection=0.9
 AutoBalance.InflectionPointRaid.Health=
 AutoBalance.InflectionPointRaid.Mana=
 AutoBalance.InflectionPointRaid.Armor=
@@ -242,14 +242,14 @@ AutoBalance.InflectionPointRaid.Damage=
 AutoBalance.InflectionPointRaid.Boss.Health=
 AutoBalance.InflectionPointRaid.Boss.Mana=
 AutoBalance.InflectionPointRaid.Boss.Armor=
-AutoBalance.InflectionPointRaid.Boss.Damage=
+AutoBalance.InflectionPointRaid.Boss.Damage=0.7
 
 ### Default for all heroic raids
-AutoBalance.InflectionPointRaidHeroic=0.5
+AutoBalance.InflectionPointRaidHeroic=0.9
 AutoBalance.InflectionPointRaidHeroic.CurveFloor=0.0
 AutoBalance.InflectionPointRaidHeroic.CurveCeiling=1.0
 AutoBalance.InflectionPointRaidHeroic.BossModifier=1.0
-AutoBalance.InflectionPointRaidHeroic.BossInflection=0.5
+AutoBalance.InflectionPointRaidHeroic.BossInflection=0.9
 AutoBalance.InflectionPointRaidHeroic.Health=
 AutoBalance.InflectionPointRaidHeroic.Mana=
 AutoBalance.InflectionPointRaidHeroic.Armor=
@@ -257,7 +257,7 @@ AutoBalance.InflectionPointRaidHeroic.Damage=
 AutoBalance.InflectionPointRaidHeroic.Boss.Health=
 AutoBalance.InflectionPointRaidHeroic.Boss.Mana=
 AutoBalance.InflectionPointRaidHeroic.Boss.Armor=
-AutoBalance.InflectionPointRaidHeroic.Boss.Damage=
+AutoBalance.InflectionPointRaidHeroic.Boss.Damage=0.7
 
 ###
 ### By default, all instances use the settings configured above. To customize settings for
@@ -398,7 +398,7 @@ AutoBalance.playerCountDifficultyOffset=0
 #        actual in-dungeon player count.
 #
 #        Default: false (use actual in-dungeon player count)
-AutoBalance.UseGroupSizeForDifficulty=0
+AutoBalance.UseGroupSizeForDifficulty=1
 
 #
 #     AutoBalance.IncludeGMsInPlayerCount
@@ -410,7 +410,7 @@ AutoBalance.UseGroupSizeForDifficulty=0
 #        properly, or if GMs are participating in content legitimately.
 #
 #        Default: false (exclude GMs from player count)
-AutoBalance.IncludeGMsInPlayerCount=0
+AutoBalance.IncludeGMsInPlayerCount=1
 
 ##########################
 #
@@ -448,10 +448,10 @@ AutoBalance.IncludeGMsInPlayerCount=0
 #
 #        Default: "tan" for all stats
 #
-AutoBalance.FormulaType.Health=tan
-AutoBalance.FormulaType.Mana=tan
-AutoBalance.FormulaType.Armor=tan
-AutoBalance.FormulaType.Damage=tan
+AutoBalance.FormulaType.Health=pol
+AutoBalance.FormulaType.Mana=pol
+AutoBalance.FormulaType.Armor=pol
+AutoBalance.FormulaType.Damage=pol
 
 #
 #     AutoBalance.FormulaType.Boss.Health
@@ -468,10 +468,10 @@ AutoBalance.FormulaType.Damage=tan
 #
 #        Default: "tan" for all boss stats
 #
-AutoBalance.FormulaType.Boss.Health=tan
-AutoBalance.FormulaType.Boss.Mana=tan
-AutoBalance.FormulaType.Boss.Armor=tan
-AutoBalance.FormulaType.Boss.Damage=tan
+AutoBalance.FormulaType.Boss.Health=pol
+AutoBalance.FormulaType.Boss.Mana=pol
+AutoBalance.FormulaType.Boss.Armor=pol
+AutoBalance.FormulaType.Boss.Damage=pol
 
 ##########################
 #
@@ -904,7 +904,7 @@ AutoBalance.DisabledID=""
 #        0 = Disabled
 #        1 = Enabled (only in dungeons/raids)
 #        Default:     1
-AutoBalance.LevelScaling=1
+AutoBalance.LevelScaling=0
 
 #
 #     AutoBalance.LevelScaling.Method
